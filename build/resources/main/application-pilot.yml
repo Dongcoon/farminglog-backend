@@ -1,8 +1,0 @@
-logging:
-  level:
-    root: WARN
-    com.farmlog: INFO
-
-springdoc:
-  swagger-ui:
-    enabled: true

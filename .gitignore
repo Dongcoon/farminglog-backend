@@ -1,0 +1,43 @@
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Gradle and Java build output
+.gradle/
+build/
+out/
+target/
+*.class
+
+# Runtime-generated files
+uploads/
+exports/
+logs/
+*.log
+
+# Java crash and profiling artifacts
+hs_err_pid*
+replay_pid*
+*.hprof
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse / STS
+.classpath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+
+# VS Code
+.vscode/
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

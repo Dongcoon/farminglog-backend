@@ -1,7 +1,0 @@
-logging:
-  level:
-    org.springframework.security: DEBUG
-
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html

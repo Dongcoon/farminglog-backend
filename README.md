@@ -25,7 +25,7 @@
 
 ## 로컬 실행 — IntelliJ
 
-1. `app/backend` 폴더를 IntelliJ에서 `Open`으로 연다 (Gradle 프로젝트 자동 인식).
+1. `project/farminglog-backend` 폴더를 IntelliJ에서 `Open`으로 연다 (Gradle 프로젝트 자동 인식).
 2. `File > Project Structure > SDK`에서 JDK 17을 지정한다.
 3. `.env.example`을 복사해 `.env`를 만들고 `DB_PASSWORD` 등 실제 값을 채운다(이미 `.env`가 있다면 `DB_PASSWORD`만 채우면 된다).
    - IntelliJ는 `.env`를 자동으로 읽지 않으므로, Run/Debug Configuration의 `Environment variables`에 `.env` 내용을 직접 입력하거나, [EnvFile 플러그인](https://plugins.jetbrains.com/plugin/7861-envfile)을 설치해 `.env`를 연결한다.

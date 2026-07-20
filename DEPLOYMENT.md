@@ -12,7 +12,7 @@
 
 ### 1.2 .env 설정 항목
 
-`backend/.env.example`을 복사해 `backend/.env`를 만들고 아래 키를 채운다. **`.env` 파일은 절대 커밋하지 않는다.**
+`farminglog-backend/.env.example`을 복사해 `farminglog-backend/.env`를 만들고 아래 키를 채운다. **`.env` 파일은 절대 커밋하지 않는다.**
 
 | 키 | 설명 |
 |---|---|
@@ -41,8 +41,8 @@
 DB Migration 도구를 사용하지 않으므로, 최초 1회 아래 SQL을 대상 DB(`DB_NAME`)에 직접 실행한다.
 
 ```bash
-mariadb -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p <DB_NAME> < backend/database/schema.sql
-mariadb -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p <DB_NAME> < backend/database/seed-data.sql   # 예시 데이터, 선택
+mariadb -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p <DB_NAME> < farminglog-backend/database/schema.sql
+mariadb -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p <DB_NAME> < farminglog-backend/database/seed-data.sql   # 예시 데이터, 선택
 ```
 
 기존 서버의 다른 서비스와 DB를 공유하는 경우, 실행 전 반드시 테이블명 충돌 여부를 확인한다.
@@ -58,7 +58,7 @@ docker compose --profile local-db up -d --build
 ### 1.4 실행/중지
 
 ```bash
-cd app/backend
+cd project/farminglog-backend
 docker compose up -d --build   # farmlog-api, farmlog-web, farmlog-nginx 기동
 docker compose logs -f farmlog-api
 docker compose ps              # api/web/nginx가 healthy인지 확인

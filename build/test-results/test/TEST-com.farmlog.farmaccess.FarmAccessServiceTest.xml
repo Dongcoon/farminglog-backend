@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.farmlog.farmaccess.FarmAccessServiceTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-20T07:17:48.798Z" hostname="DESKTOP-D0KHPJK" time="0.115">
-  <properties/>
-  <testcase name="overlappingAssignmentIsRejectedAfterScopeLock()" classname="com.farmlog.farmaccess.FarmAccessServiceTest" time="0.104"/>
-  <testcase name="acceptNeverOverwritesMembershipCreatedAfterInvitation()" classname="com.farmlog.farmaccess.FarmAccessServiceTest" time="0.003"/>
-  <testcase name="lastActiveOwnerCannotBeDemotedAfterOwnerRowsAreLocked()" classname="com.farmlog.farmaccess.FarmAccessServiceTest" time="0.006"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

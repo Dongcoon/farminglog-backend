@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.farmlog.DeploymentContractTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-20T07:17:39.225Z" hostname="DESKTOP-D0KHPJK" time="0.185">
-  <properties/>
-  <testcase name="environmentExampleCoversEveryExportSettingAndDoesNotPromiseAutomaticSeed()" classname="com.farmlog.DeploymentContractTest" time="0.086"/>
-  <testcase name="composeIsValidYamlAndKeepsRuntimeArtifactsInNamedVolumes()" classname="com.farmlog.DeploymentContractTest" time="0.077"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

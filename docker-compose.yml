@@ -4,7 +4,7 @@
 #
 # 사용법:
 #   1) backend/.env 파일에 DB_PASSWORD 등 실제 값을 채운다 (.env.example 참고)
-#   2) app/backend 디렉터리에서: docker compose up -d --build
+#   2) project/farminglog-backend 디렉터리에서: docker compose up -d --build
 #   3) API: http://localhost:8080/api/v1/swagger-ui.html
 #   4) 웹:  http://localhost:80
 
@@ -33,7 +33,7 @@ services:
 
   farmlog-web:
     build:
-      context: ../web
+      context: ../farminglog-web
       dockerfile: Dockerfile
       args:
         VITE_API_BASE_URL: /api/v1
