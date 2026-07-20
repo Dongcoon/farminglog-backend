@@ -24,6 +24,8 @@ import java.util.Date;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -48,6 +50,17 @@ class UserControllerSecurityTest {
 
     @MockBean
     private UserService userService;
+
+    @Test
+    void protectedApi_preflightFromLocalWebOrigin_returnsCorsHeadersWithoutAuthentication() throws Exception {
+        mockMvc.perform(options("/users/me/access-context")
+                        .header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "GET")
+                        .header("Access-Control-Request-Headers", "Authorization"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"))
+                .andExpect(header().string("Access-Control-Allow-Credentials", "true"));
+    }
 
     @Test
     void getMyProfile_withoutAuthorizationHeader_returns401InvalidToken() throws Exception {

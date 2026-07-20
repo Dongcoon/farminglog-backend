@@ -10,6 +10,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import static org.springframework.security.config.Customizer.withDefaults;
+
 /**
  * PC 웹은 CORS + JWT 기반 stateless 인증을 사용하므로 CSRF는 비활성화한다(4.4 원칙).
  * 실제 JWT 검증은 JwtAuthenticationFilter(Phase 1)가 담당하며, 여기서는 필터 체인 골격만 정의한다.
@@ -47,6 +49,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                // 보호 API의 브라우저 preflight(OPTIONS)가 인증 필터에서 차단되기 전에
+                // WebConfig의 허용 origin/method/header 정책을 적용한다.
+                .cors(withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth

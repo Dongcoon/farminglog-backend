@@ -4,12 +4,12 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
   datasource:
-    url: jdbc:mariadb://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:farming}?useUnicode=true&characterEncoding=utf8&connectTimeout=5000&socketTimeout=15000
-    username: ${DB_USER:root}
-    password: ${DB_PASSWORD:}
+    url: jdbc:mariadb://37.16.25.46:3306/farming?useUnicode=true&characterEncoding=utf8&connectTimeout=5000&socketTimeout=15000
+    username: root
+    password: "coon@94"
     driver-class-name: org.mariadb.jdbc.Driver
     hikari:
-      maximum-pool-size: ${DB_POOL_SIZE:10}
+      maximum-pool-size: 10
       connection-timeout: 10000
   jackson:
     serialization:
@@ -78,3 +78,6 @@ logging:
   level:
     root: INFO
     com.farmlog: DEBUG
+    # export/첨부 폴링 워커가 매초 실행되며 남기는 MyBatis SQL DEBUG 로그가 콘솔을 뒤덮는 것을 막는다.
+    com.farmlog.export.mapper: INFO
+    com.farmlog.attachment.mapper: INFO
