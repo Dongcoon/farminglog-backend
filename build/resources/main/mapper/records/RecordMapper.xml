@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.farmlog.records.mapper.RecordMapper">
+    <resultMap id="recordMap" type="com.farmlog.records.entity.RecordRow">
+        <id property="id" column="id"/><result property="type" column="record_type"/>
+        <result property="organizationId" column="organization_id"/><result property="farmId" column="farm_id"/>
+        <result property="zoneId" column="zone_id"/><result property="cropId" column="crop_id"/>
+        <result property="varietyId" column="variety_id"/><result property="seasonId" column="season_id"/>
+        <result property="workTypeId" column="work_type_id"/><result property="customerId" column="customer_id"/>
+        <result property="recordDate" column="record_date"/>
+        <result property="workerCount" column="worker_count"/><result property="workHours" column="work_hours"/>
+        <result property="chemicalName" column="chemical_name"/><result property="targetPest" column="target_pest"/>
+        <result property="dilutionRatio" column="dilution_ratio"/><result property="amountValue" column="amount_value"/>
+        <result property="amountUnit" column="amount_unit"/><result property="preharvestIntervalDays" column="preharvest_interval_days"/>
+        <result property="grade" column="grade"/><result property="quantity" column="quantity"/><result property="unit" column="unit"/>
+        <result property="packageUnit" column="package_unit"/><result property="itemName" column="item_name"/>
+        <result property="unitPrice" column="unit_price"/><result property="grossAmount" column="gross_amount"/>
+        <result property="feeAmount" column="fee_amount"/><result property="netAmount" column="net_amount"/>
+        <result property="netAmountOverriddenYn" column="net_amount_overridden_yn"/>
+        <result property="settlementStatus" column="settlement_status"/><result property="memo" column="memo"/>
+        <result property="createdRole" column="created_role"/><result property="careAssignmentId" column="care_assignment_id"/>
+        <result property="farmerConfirmStatus" column="farmer_confirm_status"/>
+        <result property="farmerConfirmedBy" column="farmer_confirmed_by"/><result property="farmerConfirmedAt" column="farmer_confirmed_at"/>
+        <result property="version" column="version"/><result property="clientRequestId" column="client_request_id"/>
+        <result property="createdBy" column="created_by"/><result property="createdByName" column="created_by_name"/>
+        <result property="createdAt" column="created_at"/><result property="updatedBy" column="updated_by"/>
+        <result property="updatedAt" column="updated_at"/><result property="deletedAt" column="deleted_at"/>
+    </resultMap>
+    <resultMap id="referenceMap" type="com.farmlog.records.entity.ReferenceRow">
+        <id property="id" column="id"/><result property="name" column="name"/><result property="activeYn" column="active_yn"/>
+    </resultMap>
+    <resultMap id="feedMap" type="com.farmlog.records.entity.FeedRow">
+        <id property="id" column="id"/><result property="type" column="record_type"/>
+        <result property="farmId" column="farm_id"/><result property="zoneId" column="zone_id"/><result property="zoneName" column="zone_name"/>
+        <result property="zoneActiveYn" column="zone_active_yn"/>
+        <result property="recordDate" column="record_date"/><result property="primaryLabel" column="primary_label"/>
+        <result property="primaryValue" column="primary_value"/><result property="createdBy" column="created_by"/>
+        <result property="createdByName" column="created_by_name"/><result property="createdRole" column="created_role"/><result property="careAssignmentId" column="care_assignment_id"/>
+        <result property="farmerConfirmStatus" column="farmer_confirm_status"/><result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <sql id="filters">
+        WHERE l.farm_id=#{filter.farmId} AND l.deleted_at IS NULL
+        <if test="filter.dateFrom != null">AND ${dateColumn} &gt;= #{filter.dateFrom}</if>
+        <if test="filter.dateTo != null">AND ${dateColumn} &lt;= #{filter.dateTo}</if>
+        <if test="filter.zoneId != null">AND l.zone_id=#{filter.zoneId}</if>
+        <if test="filter.cropId != null">AND l.crop_id=#{filter.cropId}</if>
+        <if test="filter.varietyId != null">AND l.variety_id=#{filter.varietyId}</if>
+        <if test="filter.seasonId != null">AND l.season_id=#{filter.seasonId}</if>
+        <if test="filter.createdBy != null">AND l.created_by=#{filter.createdBy}</if>
+    </sql>
+    <sql id="workColumns">
+        SELECT 'WORK' record_type,l.id,l.organization_id,l.farm_id,l.zone_id,l.crop_id,l.variety_id,l.season_id,
+        l.work_type_id,NULL customer_id,l.work_date record_date,l.worker_count,l.work_hours,
+        NULL chemical_name,NULL target_pest,NULL dilution_ratio,NULL amount_value,NULL amount_unit,NULL preharvest_interval_days,
+        NULL grade,NULL quantity,NULL unit,NULL package_unit,NULL item_name,NULL unit_price,NULL gross_amount,NULL fee_amount,NULL net_amount,
+        NULL net_amount_overridden_yn,NULL settlement_status,l.memo,l.created_role,l.care_assignment_id,l.farmer_confirm_status,
+        l.farmer_confirmed_by,l.farmer_confirmed_at,l.version,l.client_request_id,l.created_by,u.display_name created_by_name,
+        l.created_at,l.updated_by,l.updated_at,l.deleted_at FROM work_log l LEFT JOIN users u ON u.id=l.created_by
+    </sql>
+    <sql id="pestColumns">
+        SELECT 'PEST_CONTROL' record_type,l.id,l.organization_id,l.farm_id,l.zone_id,l.crop_id,l.variety_id,l.season_id,
+        NULL work_type_id,NULL customer_id,l.apply_date record_date,NULL worker_count,NULL work_hours,
+        l.chemical_name,l.target_pest,l.dilution_ratio,l.amount_value,l.amount_unit,l.preharvest_interval_days,
+        NULL grade,NULL quantity,NULL unit,NULL package_unit,NULL item_name,NULL unit_price,NULL gross_amount,NULL fee_amount,NULL net_amount,
+        NULL net_amount_overridden_yn,NULL settlement_status,l.memo,l.created_role,l.care_assignment_id,l.farmer_confirm_status,
+        l.farmer_confirmed_by,l.farmer_confirmed_at,l.version,l.client_request_id,l.created_by,u.display_name created_by_name,
+        l.created_at,l.updated_by,l.updated_at,l.deleted_at FROM pest_control_log l LEFT JOIN users u ON u.id=l.created_by
+    </sql>
+    <sql id="harvestColumns">
+        SELECT 'HARVEST' record_type,l.id,l.organization_id,l.farm_id,l.zone_id,l.crop_id,l.variety_id,l.season_id,
+        NULL work_type_id,NULL customer_id,l.harvest_date record_date,NULL worker_count,NULL work_hours,
+        NULL chemical_name,NULL target_pest,NULL dilution_ratio,NULL amount_value,NULL amount_unit,NULL preharvest_interval_days,
+        l.grade,l.quantity,l.unit,l.package_unit,NULL item_name,NULL unit_price,NULL gross_amount,NULL fee_amount,NULL net_amount,
+        NULL net_amount_overridden_yn,NULL settlement_status,l.memo,l.created_role,l.care_assignment_id,l.farmer_confirm_status,
+        l.farmer_confirmed_by,l.farmer_confirmed_at,l.version,l.client_request_id,l.created_by,u.display_name created_by_name,
+        l.created_at,l.updated_by,l.updated_at,l.deleted_at FROM harvest_log l LEFT JOIN users u ON u.id=l.created_by
+    </sql>
+    <sql id="salesColumns">
+        SELECT 'SALES' record_type,l.id,l.organization_id,l.farm_id,NULL zone_id,NULL crop_id,NULL variety_id,NULL season_id,
+        NULL work_type_id,l.customer_id,l.sales_date record_date,NULL worker_count,NULL work_hours,
+        NULL chemical_name,NULL target_pest,NULL dilution_ratio,NULL amount_value,NULL amount_unit,NULL preharvest_interval_days,
+        NULL grade,l.quantity,l.unit,NULL package_unit,l.item_name,l.unit_price,l.gross_amount,l.fee_amount,l.net_amount,
+        l.net_amount_overridden_yn,l.settlement_status,l.memo,l.created_role,l.care_assignment_id,l.farmer_confirm_status,
+        l.farmer_confirmed_by,l.farmer_confirmed_at,l.version,l.client_request_id,l.created_by,u.display_name created_by_name,
+        l.created_at,l.updated_by,l.updated_at,l.deleted_at FROM sales_log l LEFT JOIN users u ON u.id=l.created_by
+    </sql>
+
+    <select id="findPage" resultMap="recordMap">
+        <choose><when test="type.name() == 'WORK'"><include refid="workColumns"/><bind name="dateColumn" value="'l.work_date'"/></when>
+        <when test="type.name() == 'PEST_CONTROL'"><include refid="pestColumns"/><bind name="dateColumn" value="'l.apply_date'"/></when>
+        <when test="type.name() == 'HARVEST'"><include refid="harvestColumns"/><bind name="dateColumn" value="'l.harvest_date'"/></when>
+        <otherwise><include refid="salesColumns"/><bind name="dateColumn" value="'l.sales_date'"/></otherwise></choose>
+        <include refid="filters"/>
+        <if test="type.name() == 'WORK' and filter.workTypeId != null">AND l.work_type_id=#{filter.workTypeId}</if>
+        <if test="type.name() == 'SALES' and filter.customerId != null">AND l.customer_id=#{filter.customerId}</if>
+        <if test="type.name() == 'SALES' and filter.settlementStatus != null">AND l.settlement_status=#{filter.settlementStatus}</if>
+        ORDER BY ${filter.orderBy} ${filter.direction}, l.id ${filter.direction} LIMIT #{filter.size} OFFSET #{filter.offset}
+    </select>
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*) FROM
+        <choose><when test="type.name() == 'WORK'">work_log</when><when test="type.name() == 'PEST_CONTROL'">pest_control_log</when>
+        <when test="type.name() == 'HARVEST'">harvest_log</when><otherwise>sales_log</otherwise></choose> l
+        <choose><when test="type.name() == 'WORK'"><bind name="dateColumn" value="'l.work_date'"/></when>
+        <when test="type.name() == 'PEST_CONTROL'"><bind name="dateColumn" value="'l.apply_date'"/></when>
+        <when test="type.name() == 'HARVEST'"><bind name="dateColumn" value="'l.harvest_date'"/></when>
+        <otherwise><bind name="dateColumn" value="'l.sales_date'"/></otherwise></choose>
+        <include refid="filters"/>
+        <if test="type.name() == 'WORK' and filter.workTypeId != null">AND l.work_type_id=#{filter.workTypeId}</if>
+        <if test="type.name() == 'SALES' and filter.customerId != null">AND l.customer_id=#{filter.customerId}</if>
+        <if test="type.name() == 'SALES' and filter.settlementStatus != null">AND l.settlement_status=#{filter.settlementStatus}</if>
+    </select>
+    <select id="findById" resultMap="recordMap">
+        <choose><when test="type.name() == 'WORK'"><include refid="workColumns"/></when>
+        <when test="type.name() == 'PEST_CONTROL'"><include refid="pestColumns"/></when>
+        <when test="type.name() == 'HARVEST'"><include refid="harvestColumns"/></when><otherwise><include refid="salesColumns"/></otherwise></choose>
+        WHERE l.farm_id=#{farmId} AND l.id=#{id} AND l.deleted_at IS NULL
+    </select>
+    <select id="lockRecord" resultType="long">SELECT id FROM <choose><when test="type.name() == 'WORK'">work_log</when><when test="type.name() == 'PEST_CONTROL'">pest_control_log</when><when test="type.name() == 'HARVEST'">harvest_log</when><otherwise>sales_log</otherwise></choose> WHERE farm_id=#{farmId} AND id=#{id} AND deleted_at IS NULL FOR UPDATE</select>
+    <select id="findByClientRequestId" resultMap="recordMap">
+        <choose><when test="type.name() == 'WORK'"><include refid="workColumns"/></when>
+        <when test="type.name() == 'PEST_CONTROL'"><include refid="pestColumns"/></when>
+        <when test="type.name() == 'HARVEST'"><include refid="harvestColumns"/></when><otherwise><include refid="salesColumns"/></otherwise></choose>
+        WHERE l.farm_id=#{farmId} AND l.client_request_id=#{clientRequestId} AND l.deleted_at IS NULL
+    </select>
+    <!-- 중복 키 충돌 직후 현재 읽기로 이미 저장된 멱등 요청 결과를 확정한다. -->
+    <select id="findByClientRequestIdForUpdate" resultMap="recordMap">
+        <choose><when test="type.name() == 'WORK'"><include refid="workColumns"/></when>
+        <when test="type.name() == 'PEST_CONTROL'"><include refid="pestColumns"/></when>
+        <when test="type.name() == 'HARVEST'"><include refid="harvestColumns"/></when><otherwise><include refid="salesColumns"/></otherwise></choose>
+        WHERE l.farm_id=#{farmId} AND l.client_request_id=#{clientRequestId} AND l.deleted_at IS NULL
+        FOR UPDATE
+    </select>
+
+    <insert id="insertWork" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO work_log (organization_id,farm_id,zone_id,crop_id,variety_id,season_id,work_date,work_type_id,
+        worker_count,work_hours,memo,created_role,care_assignment_id,farmer_confirm_status,version,client_request_id,created_by,created_at)
+        VALUES (#{organizationId},#{farmId},#{zoneId},#{cropId},#{varietyId},#{seasonId},#{recordDate},#{workTypeId},
+        #{workerCount},#{workHours},#{memo},#{createdRole},#{careAssignmentId},#{farmerConfirmStatus},0,#{clientRequestId},#{createdBy},#{createdAt})
+    </insert>
+    <insert id="insertPest" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO pest_control_log (organization_id,farm_id,zone_id,crop_id,variety_id,season_id,apply_date,chemical_name,
+        target_pest,dilution_ratio,amount_value,amount_unit,preharvest_interval_days,memo,created_role,care_assignment_id,farmer_confirm_status,version,
+        client_request_id,created_by,created_at) VALUES (#{organizationId},#{farmId},#{zoneId},#{cropId},#{varietyId},#{seasonId},
+        #{recordDate},#{chemicalName},#{targetPest},#{dilutionRatio},#{amountValue},#{amountUnit},#{preharvestIntervalDays},#{memo},
+        #{createdRole},#{careAssignmentId},#{farmerConfirmStatus},0,#{clientRequestId},#{createdBy},#{createdAt})
+    </insert>
+    <insert id="insertHarvest" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO harvest_log (organization_id,farm_id,zone_id,crop_id,variety_id,season_id,harvest_date,grade,quantity,unit,
+        package_unit,memo,created_role,care_assignment_id,farmer_confirm_status,version,client_request_id,created_by,created_at)
+        VALUES (#{organizationId},#{farmId},#{zoneId},#{cropId},#{varietyId},#{seasonId},#{recordDate},#{grade},#{quantity},#{unit},
+        #{packageUnit},#{memo},#{createdRole},#{careAssignmentId},#{farmerConfirmStatus},0,#{clientRequestId},#{createdBy},#{createdAt})
+    </insert>
+    <insert id="insertSales" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sales_log (organization_id,farm_id,customer_id,sales_date,item_name,quantity,unit,unit_price,gross_amount,
+        fee_amount,net_amount,net_amount_overridden_yn,settlement_status,memo,created_role,care_assignment_id,farmer_confirm_status,version,
+        client_request_id,created_by,created_at) VALUES (#{organizationId},#{farmId},#{customerId},#{recordDate},#{itemName},#{quantity},
+        #{unit},#{unitPrice},#{grossAmount},#{feeAmount},#{netAmount},#{netAmountOverriddenYn},#{settlementStatus},#{memo},#{createdRole},
+        #{careAssignmentId},#{farmerConfirmStatus},0,#{clientRequestId},#{createdBy},#{createdAt})
+    </insert>
+
+    <update id="updateWork">UPDATE work_log SET zone_id=#{row.zoneId},crop_id=#{row.cropId},variety_id=#{row.varietyId},season_id=#{row.seasonId},
+        work_date=#{row.recordDate},work_type_id=#{row.workTypeId},worker_count=#{row.workerCount},work_hours=#{row.workHours},memo=#{row.memo},
+        farmer_confirm_status=#{row.farmerConfirmStatus},farmer_confirmed_by=#{row.farmerConfirmedBy},farmer_confirmed_at=#{row.farmerConfirmedAt},updated_by=#{row.updatedBy},updated_at=#{row.updatedAt},version=version+1
+        WHERE farm_id=#{row.farmId} AND id=#{row.id} AND version=#{expectedVersion} AND deleted_at IS NULL</update>
+    <update id="updatePest">UPDATE pest_control_log SET zone_id=#{row.zoneId},crop_id=#{row.cropId},variety_id=#{row.varietyId},season_id=#{row.seasonId},
+        apply_date=#{row.recordDate},chemical_name=#{row.chemicalName},target_pest=#{row.targetPest},dilution_ratio=#{row.dilutionRatio},
+        amount_value=#{row.amountValue},amount_unit=#{row.amountUnit},preharvest_interval_days=#{row.preharvestIntervalDays},memo=#{row.memo},
+        farmer_confirm_status=#{row.farmerConfirmStatus},farmer_confirmed_by=#{row.farmerConfirmedBy},farmer_confirmed_at=#{row.farmerConfirmedAt},updated_by=#{row.updatedBy},updated_at=#{row.updatedAt},version=version+1
+        WHERE farm_id=#{row.farmId} AND id=#{row.id} AND version=#{expectedVersion} AND deleted_at IS NULL</update>
+    <update id="updateHarvest">UPDATE harvest_log SET zone_id=#{row.zoneId},crop_id=#{row.cropId},variety_id=#{row.varietyId},season_id=#{row.seasonId},
+        harvest_date=#{row.recordDate},grade=#{row.grade},quantity=#{row.quantity},unit=#{row.unit},package_unit=#{row.packageUnit},memo=#{row.memo},
+        farmer_confirm_status=#{row.farmerConfirmStatus},farmer_confirmed_by=#{row.farmerConfirmedBy},farmer_confirmed_at=#{row.farmerConfirmedAt},updated_by=#{row.updatedBy},updated_at=#{row.updatedAt},version=version+1
+        WHERE farm_id=#{row.farmId} AND id=#{row.id} AND version=#{expectedVersion} AND deleted_at IS NULL</update>
+    <update id="updateSales">UPDATE sales_log SET customer_id=#{row.customerId},sales_date=#{row.recordDate},item_name=#{row.itemName},
+        quantity=#{row.quantity},unit=#{row.unit},unit_price=#{row.unitPrice},gross_amount=#{row.grossAmount},fee_amount=#{row.feeAmount},
+        net_amount=#{row.netAmount},net_amount_overridden_yn=#{row.netAmountOverriddenYn},settlement_status=#{row.settlementStatus},memo=#{row.memo},
+        farmer_confirm_status=#{row.farmerConfirmStatus},farmer_confirmed_by=#{row.farmerConfirmedBy},farmer_confirmed_at=#{row.farmerConfirmedAt},updated_by=#{row.updatedBy},updated_at=#{row.updatedAt},version=version+1
+        WHERE farm_id=#{row.farmId} AND id=#{row.id} AND version=#{expectedVersion} AND deleted_at IS NULL</update>
+    <update id="softDelete">
+        UPDATE <choose><when test="type.name() == 'WORK'">work_log</when><when test="type.name() == 'PEST_CONTROL'">pest_control_log</when>
+        <when test="type.name() == 'HARVEST'">harvest_log</when><otherwise>sales_log</otherwise></choose>
+        SET deleted_at=#{now},updated_by=#{userId},updated_at=#{now},version=version+1
+        WHERE farm_id=#{farmId} AND id=#{id} AND version=#{expectedVersion} AND deleted_at IS NULL
+    </update>
+    <update id="updateFarmerConfirmation">
+        UPDATE <choose><when test="type.name() == 'WORK'">work_log</when><when test="type.name() == 'PEST_CONTROL'">pest_control_log</when><when test="type.name() == 'HARVEST'">harvest_log</when><otherwise>sales_log</otherwise></choose>
+        SET farmer_confirm_status=#{status},farmer_confirmed_by=#{userId},farmer_confirmed_at=#{now},
+            updated_by=#{userId},updated_at=#{now},version=version+1
+        WHERE farm_id=#{farmId} AND id=#{id} AND deleted_at IS NULL AND created_role='FARM_CARE_MANAGER'
+          AND version=#{version}
+    </update>
+
+    <select id="findZone" resultMap="referenceMap">SELECT id,name,CASE WHEN active_yn='Y' AND deleted_at IS NULL THEN 'Y' ELSE 'N' END active_yn FROM farm_zone WHERE id=#{id}<if test="activeOnly"> AND farm_id=#{farmId} AND active_yn='Y' AND deleted_at IS NULL AND EXISTS(SELECT 1 FROM farm_zone_assignment a WHERE a.zone_id=farm_zone.id AND a.farm_id=#{farmId} AND a.effective_to IS NULL AND a.active_yn='Y')</if></select>
+    <select id="findCurrentZoneForUpdate" resultMap="referenceMap">SELECT z.id,z.name,z.active_yn FROM farm_zone z JOIN farm_zone_assignment a ON a.zone_id=z.id AND a.farm_id=#{farmId} AND a.effective_to IS NULL AND a.active_yn='Y' WHERE z.id=#{id} AND z.farm_id=#{farmId} AND z.active_yn='Y' AND z.deleted_at IS NULL FOR UPDATE</select>
+    <select id="findCrop" resultMap="referenceMap">SELECT c.id,c.name,fc.active_yn FROM farm_crop fc JOIN crop c ON c.id=fc.crop_id WHERE fc.farm_id=#{farmId} AND c.id=#{id}<if test="activeOnly"> AND fc.active_yn='Y'</if></select>
+    <select id="findVariety" resultMap="referenceMap">SELECT v.id,v.name,fv.active_yn FROM farm_crop_variety fv JOIN crop_variety v ON v.id=fv.variety_id WHERE fv.farm_id=#{farmId} AND fv.crop_id=#{cropId} AND v.id=#{id}<if test="activeOnly"> AND fv.active_yn='Y'</if></select>
+    <select id="findSeason" resultMap="referenceMap">SELECT id,name,CASE WHEN status='ACTIVE' AND deleted_at IS NULL THEN 'Y' ELSE 'N' END active_yn FROM crop_season WHERE farm_id=#{farmId} AND id=#{id}<if test="activeOnly"> AND status='ACTIVE' AND deleted_at IS NULL</if></select>
+    <select id="findWorkType" resultMap="referenceMap">SELECT id,name,active_yn FROM work_type WHERE farm_id=#{farmId} AND id=#{id}<if test="activeOnly"> AND active_yn='Y'</if></select>
+    <select id="findCustomer" resultMap="referenceMap">SELECT id,name,CASE WHEN active_yn='Y' AND deleted_at IS NULL THEN 'Y' ELSE 'N' END active_yn FROM customer WHERE farm_id=#{farmId} AND id=#{id}<if test="activeOnly"> AND active_yn='Y' AND deleted_at IS NULL</if></select>
+    <select id="findUser" resultMap="referenceMap">SELECT id,display_name name,'Y' active_yn FROM users WHERE id=#{id}</select>
+
+    <sql id="feedUnion">
+        SELECT 'WORK' record_type,l.id,l.farm_id,l.zone_id,l.work_date record_date,wt.name primary_label,
+        CONCAT(COALESCE(l.worker_count,''),'명 ',COALESCE(l.work_hours,''),'시간') primary_value,l.created_by,l.created_role,l.care_assignment_id,l.farmer_confirm_status,l.created_at
+        FROM work_log l LEFT JOIN work_type wt ON wt.id=l.work_type_id WHERE l.deleted_at IS NULL
+        UNION ALL SELECT 'PEST_CONTROL',l.id,l.farm_id,l.zone_id,l.apply_date,l.chemical_name,l.target_pest,l.created_by,l.created_role,l.care_assignment_id,l.farmer_confirm_status,l.created_at FROM pest_control_log l WHERE l.deleted_at IS NULL
+        UNION ALL SELECT 'HARVEST',l.id,l.farm_id,l.zone_id,l.harvest_date,'수확',CONCAT(l.quantity,' ',l.unit),l.created_by,l.created_role,l.care_assignment_id,l.farmer_confirm_status,l.created_at FROM harvest_log l WHERE l.deleted_at IS NULL
+        UNION ALL SELECT 'SALES',l.id,l.farm_id,NULL,l.sales_date,COALESCE(l.item_name,c.name,'품목 미입력'),CONCAT(l.net_amount,'원'),l.created_by,l.created_role,l.care_assignment_id,l.farmer_confirm_status,l.created_at FROM sales_log l LEFT JOIN customer c ON c.id=l.customer_id WHERE l.deleted_at IS NULL
+    </sql>
+    <select id="findFeed" resultMap="feedMap">
+        SELECT q.*,z.name zone_name,CASE WHEN z.active_yn='Y' AND z.deleted_at IS NULL THEN 'Y' ELSE 'N' END zone_active_yn,
+        u.display_name created_by_name FROM (<include refid="feedUnion"/>) q
+        LEFT JOIN farm_zone z ON z.id=q.zone_id LEFT JOIN users u ON u.id=q.created_by
+        WHERE q.farm_id=#{farmId}<if test="dateFrom != null"> AND q.record_date &gt;=#{dateFrom}</if>
+        <if test="dateTo != null"> AND q.record_date &lt;=#{dateTo}</if><if test="zoneId != null"> AND q.zone_id=#{zoneId}</if>
+        <if test="createdBy != null"> AND q.created_by=#{createdBy}</if>
+        AND q.record_type IN <foreach collection="types" item="t" open="(" separator="," close=")">#{t}</foreach>
+        ORDER BY ${orderBy} ${direction},q.id ${direction},q.record_type ${direction} LIMIT #{size} OFFSET #{offset}
+    </select>
+    <select id="countFeed" resultType="long">
+        SELECT COUNT(*) FROM (<include refid="feedUnion"/>) q WHERE q.farm_id=#{farmId}
+        <if test="dateFrom != null"> AND q.record_date &gt;=#{dateFrom}</if><if test="dateTo != null"> AND q.record_date &lt;=#{dateTo}</if>
+        <if test="zoneId != null"> AND q.zone_id=#{zoneId}</if><if test="createdBy != null"> AND q.created_by=#{createdBy}</if>
+        AND q.record_type IN <foreach collection="types" item="t" open="(" separator="," close=")">#{t}</foreach>
+    </select>
+    <select id="findRecordAuthors" resultMap="referenceMap">
+        SELECT DISTINCT u.id,u.display_name name,'Y' active_yn
+        FROM users u JOIN (
+            SELECT created_by FROM work_log WHERE farm_id=#{farmId} AND deleted_at IS NULL
+            UNION SELECT created_by FROM pest_control_log WHERE farm_id=#{farmId} AND deleted_at IS NULL
+            UNION SELECT created_by FROM harvest_log WHERE farm_id=#{farmId} AND deleted_at IS NULL
+            UNION SELECT created_by FROM sales_log WHERE farm_id=#{farmId} AND deleted_at IS NULL
+        ) a ON a.created_by=u.id
+        ORDER BY u.display_name,u.id
+    </select>
+    <insert id="insertAudit">
+        INSERT INTO audit_log (organization_id,farm_id,actor_user_id,action,target_type,target_id,detail_json,created_at)
+        VALUES (#{organizationId},#{farmId},#{actorUserId},#{action},#{targetType},#{targetId},#{detailJson},#{now})
+    </insert>
+</mapper>

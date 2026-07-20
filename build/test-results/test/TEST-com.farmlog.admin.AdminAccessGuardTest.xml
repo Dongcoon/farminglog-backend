@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.farmlog.admin.AdminAccessGuardTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-07-20T07:17:39.411Z" hostname="DESKTOP-D0KHPJK" time="1.027">
+  <properties/>
+  <testcase name="checksActiveSystemAdminCapabilityFromDatabase()" classname="com.farmlog.admin.AdminAccessGuardTest" time="1.027"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

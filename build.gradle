@@ -1,0 +1,68 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.3.5'
+	id 'io.spring.dependency-management' version '1.1.6'
+}
+
+group = 'com.farmlog'
+version = '0.0.1-SNAPSHOT'
+description = 'Farmlog API'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+ext {
+	set('mybatisStarterVersion', '3.0.3')
+	set('springdocVersion', '2.6.0')
+	set('jjwtVersion', '0.12.6')
+	set('poiVersion', '5.3.0')
+	set('openhtmltopdfVersion', '1.0.10')
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+	// DB access — MyBatis (사용자 지정 필수 스택), DB Migration 도구 미사용
+	implementation "org.mybatis.spring.boot:mybatis-spring-boot-starter:${mybatisStarterVersion}"
+	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
+
+	// API 문서 — Swagger UI
+	implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springdocVersion}"
+
+	// JWT
+	implementation "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
+	runtimeOnly "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
+	runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
+
+	// 엑셀 출력
+	implementation "org.apache.poi:poi-ooxml:${poiVersion}"
+
+	// PDF 출력 (한글 폰트 내장을 위해 리소스에 폰트 파일 포함)
+	implementation "com.openhtmltopdf:openhtmltopdf-pdfbox:${openhtmltopdfVersion}"
+	implementation "com.openhtmltopdf:openhtmltopdf-slf4j:${openhtmltopdfVersion}"
+	// WEBP도 magic/MIME뿐 아니라 실제 픽셀 decode 검증을 수행한다.
+	implementation 'org.sejda.imageio:webp-imageio:0.1.6'
+
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.security:spring-security-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

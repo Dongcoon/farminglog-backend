@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.farmlog.auth.AuthServiceTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-07-20T07:17:45.085Z" hostname="DESKTOP-D0KHPJK" time="0.737">
+  <properties/>
+  <testcase name="signUp_success_createsUserPersonalOrgAndTokens()" classname="com.farmlog.auth.AuthServiceTest" time="0.222"/>
+  <testcase name="refresh_success_rotatesRefreshToken()" classname="com.farmlog.auth.AuthServiceTest" time="0.093"/>
+  <testcase name="refresh_unknownToken_throwsInvalidToken()" classname="com.farmlog.auth.AuthServiceTest" time="0.003"/>
+  <testcase name="confirmPasswordReset_invalidToken_throwsBusinessException()" classname="com.farmlog.auth.AuthServiceTest" time="0.003"/>
+  <testcase name="confirmPasswordReset_success_updatesPasswordAndRevokesRefreshTokens()" classname="com.farmlog.auth.AuthServiceTest" time="0.114"/>
+  <testcase name="requestPasswordReset_unknownEmail_stillReturnsGenericSuccess()" classname="com.farmlog.auth.AuthServiceTest" time="0.001"/>
+  <testcase name="requestPasswordReset_knownEmail_createsToken()" classname="com.farmlog.auth.AuthServiceTest" time="0.056"/>
+  <testcase name="refresh_revokedToken_throwsInvalidToken()" classname="com.farmlog.auth.AuthServiceTest" time="0.003"/>
+  <testcase name="signUp_duplicateEmail_throwsBusinessException()" classname="com.farmlog.auth.AuthServiceTest" time="0.001"/>
+  <testcase name="refresh_missingToken_throwsInvalidToken()" classname="com.farmlog.auth.AuthServiceTest" time="0.001"/>
+  <testcase name="login_wrongPassword_throwsInvalidCredentials()" classname="com.farmlog.auth.AuthServiceTest" time="0.112"/>
+  <testcase name="refresh_expiredJwt_throwsAuthExpired()" classname="com.farmlog.auth.AuthServiceTest" time="0.004"/>
+  <testcase name="login_unknownEmail_throwsInvalidCredentials_notUserNotFound()" classname="com.farmlog.auth.AuthServiceTest" time="0.002"/>
+  <testcase name="confirmPasswordReset_expiredToken_throwsBusinessException()" classname="com.farmlog.auth.AuthServiceTest" time="0.001"/>
+  <testcase name="login_success_returnsTokensAndUpdatesLastLogin()" classname="com.farmlog.auth.AuthServiceTest" time="0.112"/>
+  <testcase name="refresh_accessTokenRejected_throwsInvalidToken()" classname="com.farmlog.auth.AuthServiceTest" time="0.002"/>
+  <system-out><![CDATA[2026-07-20T16:17:45.217+09:00  INFO 32132 --- [farmlog-api] [    Test worker] com.farmlog.auth.AuthService             : 신규 회원가입: userId=1, organizationId=1
+2026-07-20T16:17:45.520+09:00  INFO 32132 --- [farmlog-api] [    Test worker] com.farmlog.auth.AuthService             : 비밀번호 재설정 완료: userId=1
+2026-07-20T16:17:45.580+09:00  INFO 32132 --- [farmlog-api] [    Test worker] com.farmlog.auth.AuthService             : [비밀번호 재설정 링크] farmer@example.com -> http://localhost:5173/password-reset?token=HvIqS3-0RsyuguTHUvWE7DCQu7DzGfIvfAz_HDSKmx4 (만료: 30분 후)
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

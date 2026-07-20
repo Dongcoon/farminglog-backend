@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.farmlog.farmstructure.Phase8ContractTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-07-20T07:17:49.163Z" hostname="DESKTOP-D0KHPJK" time="0.007">
+  <properties/>
+  <testcase name="mapperLocksInStableOrderAndKeepsProjectionJoinsFarmIndependent()" classname="com.farmlog.farmstructure.Phase8ContractTest" time="0.001"/>
+  <testcase name="migrationBackfillsRequiredJsonAndDropsLegacyColumns()" classname="com.farmlog.farmstructure.Phase8ContractTest" time="0.0"/>
+  <testcase name="schemaContainsVersionCurrentMarkerAndCanonicalEventColumns()" classname="com.farmlog.farmstructure.Phase8ContractTest" time="0.0"/>
+  <testcase name="historicalZoneLabelsUseGlobalZoneIdAcrossEveryReadSurface()" classname="com.farmlog.farmstructure.Phase8ContractTest" time="0.002"/>
+  <testcase name="contextContentAndCountUseSameActiveOwnerBoundary()" classname="com.farmlog.farmstructure.Phase8ContractTest" time="0.001"/>
+  <testcase name="confirmCancelUseCurrentReadAndOwnerEventFilterCannotBeVacuouslyTrue()" classname="com.farmlog.farmstructure.Phase8ContractTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

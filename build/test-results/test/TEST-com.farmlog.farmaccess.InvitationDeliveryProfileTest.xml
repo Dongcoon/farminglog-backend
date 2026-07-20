@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.farmlog.farmaccess.InvitationDeliveryProfileTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-20T07:17:48.914Z" hostname="DESKTOP-D0KHPJK" time="0.055">
+  <properties/>
+  <testcase name="productionFailsClosedWhenRealDeliveryBeanIsMissing()" classname="com.farmlog.farmaccess.InvitationDeliveryProfileTest" time="0.033"/>
+  <testcase name="loggingDeliveryIsAvailableOnlyInNonProductionProfiles()" classname="com.farmlog.farmaccess.InvitationDeliveryProfileTest" time="0.021"/>
+  <system-out><![CDATA[2026-07-20T16:17:48.946+09:00  WARN 32132 --- [farmlog-api] [    Test worker] s.c.a.AnnotationConfigApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'farmAccessService': Unsatisfied dependency expressed through constructor parameter 5: No qualifying bean of type 'com.farmlog.farmaccess.InvitationDelivery' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.farmlog.report.ReportServiceTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-07-20T07:17:52.223Z" hostname="DESKTOP-D0KHPJK" time="0.027">
+  <properties/>
+  <testcase name="keepsDifferentUnitsSeparateAndCalculatesPreviousMonthChanges()" classname="com.farmlog.report.ReportServiceTest" time="0.007"/>
+  <testcase name="workAndPestRecordsMakeIncludedCountNonZeroWithoutSalesOrHarvest()" classname="com.farmlog.report.ReportServiceTest" time="0.003"/>
+  <testcase name="rejectsUnsupportedBasisAndMalformedMonth()" classname="com.farmlog.report.ReportServiceTest" time="0.004"/>
+  <testcase name="salesChangesDistinguishNewNoDataAndSameZeroAmountRecord()" classname="com.farmlog.report.ReportServiceTest" time="0.002"/>
+  <testcase name="previousOnlyUnitHasZeroCurrentAndMinusHundredPercent()" classname="com.farmlog.report.ReportServiceTest" time="0.002"/>
+  <testcase name="careManagerCannotReadMonthlyReport()" classname="com.farmlog.report.ReportServiceTest" time="0.002"/>
+  <testcase name="averagePriceRoundsHalfUpAndBreakdownSumsManagerCountsAcrossUnits()" classname="com.farmlog.report.ReportServiceTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

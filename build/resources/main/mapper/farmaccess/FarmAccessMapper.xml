@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.farmlog.farmaccess.mapper.FarmAccessMapper">
+  <resultMap id="member" type="com.farmlog.farmaccess.entity.MemberRow">
+    <id property="id" column="id"/><result property="farmId" column="farm_id"/><result property="userId" column="user_id"/>
+    <result property="email" column="email"/><result property="displayName" column="display_name"/><result property="role" column="role"/>
+    <result property="status" column="status"/><result property="version" column="version"/><result property="createdAt" column="created_at"/><result property="updatedAt" column="updated_at"/>
+  </resultMap>
+  <resultMap id="invite" type="com.farmlog.farmaccess.entity.InvitationRow">
+    <id property="id" column="id"/><result property="organizationId" column="organization_id"/><result property="farmId" column="farm_id"/>
+    <result property="email" column="email"/><result property="role" column="role"/><result property="inviteTokenHash" column="invite_token_hash"/>
+    <result property="status" column="derived_status"/><result property="clientRequestId" column="client_request_id"/><result property="invitedBy" column="invited_by"/>
+    <result property="invitedByName" column="invited_by_name"/><result property="acceptedUserId" column="accepted_user_id"/><result property="invitedAt" column="invited_at"/>
+    <result property="respondedAt" column="responded_at"/><result property="expiresAt" column="expires_at"/><result property="version" column="version"/>
+  </resultMap>
+  <resultMap id="care" type="com.farmlog.farmaccess.entity.CareAssignmentRow">
+    <id property="id" column="id"/><result property="organizationId" column="organization_id"/><result property="farmId" column="farm_id"/><result property="farmName" column="farm_name"/>
+    <result property="managerUserId" column="manager_user_id"/><result property="managerName" column="manager_name"/><result property="managerEmail" column="manager_email"/>
+    <result property="assignedBy" column="assigned_by"/><result property="assignedByName" column="assigned_by_name"/><result property="assignmentType" column="assignment_type"/>
+    <result property="permissionScope" column="permission_scope"/><result property="status" column="derived_status"/><result property="startsAt" column="starts_at"/><result property="endsAt" column="ends_at"/>
+    <result property="assignedAt" column="assigned_at"/><result property="revokedAt" column="revoked_at"/><result property="revokedBy" column="revoked_by"/><result property="revokedByName" column="revoked_by_name"/>
+    <result property="revokedReason" column="revoked_reason"/><result property="memo" column="memo"/><result property="clientRequestId" column="client_request_id"/>
+    <result property="recentInputCount" column="recent_input_count"/><result property="lastInputAt" column="last_input_at"/><result property="openIssueCount" column="open_issue_count"/><result property="version" column="version"/>
+  </resultMap>
+  <sql id="inviteColumns">SELECT i.*,u.display_name invited_by_name,CASE WHEN i.status='PENDING' AND i.expires_at&lt;=#{now} THEN 'EXPIRED' ELSE i.status END derived_status FROM farm_invitation i JOIN users u ON u.id=i.invited_by</sql>
+  <sql id="careColumns">SELECT a.*,a.created_at assigned_at,f.name farm_name,m.display_name manager_name,m.email manager_email,ab.display_name assigned_by_name,rb.display_name revoked_by_name,
+    CASE WHEN a.status='ACTIVE' AND (a.starts_at&gt;#{now} OR (a.ends_at IS NOT NULL AND a.ends_at&lt;=#{now})) THEN 'EXPIRED' ELSE a.status END derived_status,
+    ((SELECT COUNT(*) FROM work_log l WHERE l.farm_id=a.farm_id AND l.care_assignment_id=a.id AND l.deleted_at IS NULL)
+      +(SELECT COUNT(*) FROM pest_control_log l WHERE l.farm_id=a.farm_id AND l.care_assignment_id=a.id AND l.deleted_at IS NULL)
+      +(SELECT COUNT(*) FROM harvest_log l WHERE l.farm_id=a.farm_id AND l.care_assignment_id=a.id AND l.deleted_at IS NULL)
+      +(SELECT COUNT(*) FROM sales_log l WHERE l.farm_id=a.farm_id AND l.care_assignment_id=a.id AND l.deleted_at IS NULL)) recent_input_count,
+    NULLIF(GREATEST(
+      COALESCE((SELECT MAX(l.created_at) FROM work_log l WHERE l.farm_id=a.farm_id AND l.care_assignment_id=a.id AND l.deleted_at IS NULL),TIMESTAMP('1000-01-01 00:00:00')),
+      COALESCE((SELECT MAX(l.created_at) FROM pest_control_log l WHERE l.farm_id=a.farm_id AND l.care_assignment_id=a.id AND l.deleted_at IS NULL),TIMESTAMP('1000-01-01 00:00:00')),
+      COALESCE((SELECT MAX(l.created_at) FROM harvest_log l WHERE l.farm_id=a.farm_id AND l.care_assignment_id=a.id AND l.deleted_at IS NULL),TIMESTAMP('1000-01-01 00:00:00')),
+      COALESCE((SELECT MAX(l.created_at) FROM sales_log l WHERE l.farm_id=a.farm_id AND l.care_assignment_id=a.id AND l.deleted_at IS NULL),TIMESTAMP('1000-01-01 00:00:00'))
+    ),TIMESTAMP('1000-01-01 00:00:00')) last_input_at,
+    (SELECT COUNT(*) FROM data_quality_issue q WHERE q.farm_id=a.farm_id AND q.assigned_manager_user_id=a.manager_user_id AND q.issue_status IN ('OPEN','IN_PROGRESS')) open_issue_count
+    FROM farm_care_assignment a JOIN farm f ON f.id=a.farm_id JOIN users m ON m.id=a.manager_user_id JOIN users ab ON ab.id=a.assigned_by LEFT JOIN users rb ON rb.id=a.revoked_by</sql>
+
+  <select id="findMembers" resultMap="member">SELECT fm.*,u.email,u.display_name FROM farm_member fm JOIN users u ON u.id=fm.user_id WHERE fm.farm_id=#{farmId} ORDER BY fm.created_at,fm.id LIMIT #{size} OFFSET #{offset}</select>
+  <select id="countMembers" resultType="long">SELECT COUNT(*) FROM farm_member WHERE farm_id=#{farmId}</select>
+  <select id="findMember" resultMap="member">SELECT fm.*,u.email,u.display_name FROM farm_member fm JOIN users u ON u.id=fm.user_id WHERE fm.farm_id=#{farmId} AND fm.id=#{id}</select>
+  <select id="countActiveOwners" resultType="long">SELECT COUNT(*) FROM farm_member WHERE farm_id=#{farmId} AND role='FARM_OWNER' AND status='ACTIVE'</select>
+  <select id="lockActiveOwners" resultType="long">SELECT id FROM farm_member WHERE farm_id=#{farmId} AND role='FARM_OWNER' AND status='ACTIVE' ORDER BY id FOR UPDATE</select>
+  <select id="findMemberByEmail" resultMap="member">SELECT fm.*,u.email,u.display_name FROM farm_member fm JOIN users u ON u.id=fm.user_id WHERE fm.farm_id=#{farmId} AND u.email=#{email}</select>
+  <select id="findMemberByUserForUpdate" resultMap="member">SELECT fm.*,u.email,u.display_name FROM farm_member fm JOIN users u ON u.id=fm.user_id WHERE fm.farm_id=#{farmId} AND fm.user_id=#{userId} FOR UPDATE</select>
+  <update id="updateMember">UPDATE farm_member SET role=COALESCE(#{role},role),status=COALESCE(#{status},status),version=version+1,updated_at=#{now} WHERE farm_id=#{farmId} AND id=#{id} AND version=#{version}</update>
+
+  <select id="findInvitations" resultMap="invite"><include refid="inviteColumns"/> WHERE i.farm_id=#{farmId}<if test="status!=null"> AND (CASE WHEN i.status='PENDING' AND i.expires_at&lt;=#{now} THEN 'EXPIRED' ELSE i.status END)=#{status}</if> ORDER BY i.invited_at DESC,i.id DESC LIMIT #{size} OFFSET #{offset}</select>
+  <select id="countInvitations" resultType="long">SELECT COUNT(*) FROM farm_invitation i WHERE i.farm_id=#{farmId}<if test="status!=null"> AND (CASE WHEN i.status='PENDING' AND i.expires_at&lt;=#{now} THEN 'EXPIRED' ELSE i.status END)=#{status}</if></select>
+  <select id="findInvitation" resultMap="invite"><include refid="inviteColumns"/> WHERE i.farm_id=#{farmId} AND i.id=#{id}</select>
+  <select id="findInvitationByRequest" resultMap="invite"><include refid="inviteColumns"/> WHERE i.farm_id=#{farmId} AND i.client_request_id=#{clientRequestId}</select>
+  <select id="findInvitationByRequestForUpdate" resultMap="invite"><include refid="inviteColumns"/> WHERE i.farm_id=#{farmId} AND i.client_request_id=#{clientRequestId} FOR UPDATE</select>
+  <select id="findInvitationByTokenForUpdate" resultMap="invite"><include refid="inviteColumns"/> WHERE i.invite_token_hash=#{tokenHash} FOR UPDATE</select>
+  <select id="findInvitationByToken" resultMap="invite"><include refid="inviteColumns"/> WHERE i.invite_token_hash=#{tokenHash}</select>
+  <insert id="insertInvitation" useGeneratedKeys="true" keyProperty="id">INSERT INTO farm_invitation(organization_id,farm_id,email,role,invite_token_hash,status,client_request_id,invited_by,invited_at,expires_at,version) VALUES(#{organizationId},#{farmId},#{email},#{role},#{inviteTokenHash},'PENDING',#{clientRequestId},#{invitedBy},#{invitedAt},#{expiresAt},0)</insert>
+  <update id="cancelInvitation">UPDATE farm_invitation SET status='CANCELLED',responded_at=#{now},version=version+1 WHERE farm_id=#{farmId} AND id=#{id} AND status='PENDING' AND expires_at&gt;#{now} AND version=#{version}</update>
+  <update id="acceptInvitation">UPDATE farm_invitation SET status='ACCEPTED',accepted_user_id=#{userId},responded_at=#{now},version=version+1 WHERE id=#{id} AND status='PENDING' AND expires_at&gt;#{now} AND version=#{version}</update>
+  <!-- 이미 존재하는 멤버의 역할은 초대 수락으로 절대 강등하지 않는다. -->
+  <insert id="upsertAcceptedMember">INSERT INTO farm_member(farm_id,user_id,role,status,created_at,version) VALUES(#{farmId},#{userId},#{role},'ACTIVE',#{now},0) ON DUPLICATE KEY UPDATE user_id=user_id</insert>
+
+  <select id="findFarmAssignments" resultMap="care"><include refid="careColumns"/> WHERE a.farm_id=#{farmId}<include refid="careStatus"/> ORDER BY a.assigned_at DESC,a.id DESC LIMIT #{size} OFFSET #{offset}</select>
+  <select id="countFarmAssignments" resultType="long">SELECT COUNT(*) FROM farm_care_assignment a WHERE a.farm_id=#{farmId}<include refid="careStatus"/></select>
+  <select id="findManagerAssignments" resultMap="care"><include refid="careColumns"/> WHERE a.manager_user_id=#{userId}<include refid="careStatus"/> ORDER BY a.assigned_at DESC,a.id DESC LIMIT #{size} OFFSET #{offset}</select>
+  <select id="countManagerAssignments" resultType="long">SELECT COUNT(*) FROM farm_care_assignment a WHERE a.manager_user_id=#{userId}<include refid="careStatus"/></select>
+  <sql id="careStatus"><if test="status=='ACTIVE'"> AND a.status='ACTIVE' AND a.starts_at&lt;=#{now} AND (a.ends_at IS NULL OR a.ends_at&gt;#{now})</if><if test="status=='REVOKED'"> AND a.status='REVOKED'</if><if test="status=='EXPIRED'"> AND a.status='ACTIVE' AND (a.starts_at&gt;#{now} OR (a.ends_at IS NOT NULL AND a.ends_at&lt;=#{now}))</if></sql>
+  <select id="findAssignment" resultMap="care"><include refid="careColumns"/> WHERE a.farm_id=#{farmId} AND a.id=#{id}</select>
+  <select id="findActiveAssignment" resultMap="care"><include refid="careColumns"/> WHERE a.farm_id=#{farmId} AND a.manager_user_id=#{userId} AND a.status='ACTIVE' AND a.starts_at&lt;=#{now} AND (a.ends_at IS NULL OR a.ends_at&gt;#{now}) ORDER BY a.id DESC LIMIT 1</select>
+  <select id="findActiveAssignmentForUpdate" resultMap="care"><include refid="careColumns"/> WHERE a.farm_id=#{farmId} AND a.manager_user_id=#{userId} AND a.status='ACTIVE' AND a.starts_at&lt;=#{now} AND (a.ends_at IS NULL OR a.ends_at&gt;#{now}) ORDER BY a.id DESC LIMIT 1 FOR UPDATE</select>
+  <select id="findAssignmentByRequest" resultMap="care"><include refid="careColumns"/> WHERE a.farm_id=#{farmId} AND a.client_request_id=#{clientRequestId}</select>
+  <select id="findAssignmentByRequestForUpdate" resultMap="care"><include refid="careColumns"/> WHERE a.farm_id=#{farmId} AND a.client_request_id=#{clientRequestId} FOR UPDATE</select>
+  <!-- farm+manager의 안정적인 부모 행을 잠가 빈 범위에서의 동시 배정 생성도 직렬화한다. -->
+  <select id="lockAssignmentScope" resultType="long">SELECT f.id FROM farm f JOIN users u ON u.id=#{managerUserId} WHERE f.id=#{farmId} FOR UPDATE</select>
+  <select id="countOverlappingAssignments" resultType="long">SELECT COUNT(*) FROM farm_care_assignment WHERE farm_id=#{farmId} AND manager_user_id=#{managerUserId} AND status='ACTIVE' AND (#{endsAt} IS NULL OR starts_at&lt;#{endsAt}) AND (ends_at IS NULL OR ends_at&gt;#{startsAt})</select>
+  <insert id="insertAssignment" useGeneratedKeys="true" keyProperty="id">INSERT INTO farm_care_assignment(organization_id,farm_id,manager_user_id,assigned_by,assignment_type,permission_scope,status,starts_at,ends_at,memo,client_request_id,created_at,version) VALUES(#{organizationId},#{farmId},#{managerUserId},#{assignedBy},'DATA_CARE','REVIEW_AND_INPUT','ACTIVE',#{startsAt},#{endsAt},#{memo},#{clientRequestId},#{assignedAt},0)</insert>
+  <update id="revokeAssignment">UPDATE farm_care_assignment SET status='REVOKED',revoked_at=#{now},revoked_by=#{userId},revoked_reason=#{reason},version=version+1,updated_at=#{now} WHERE farm_id=#{farmId} AND id=#{id} AND status='ACTIVE' AND starts_at&lt;=#{now} AND (ends_at IS NULL OR ends_at&gt;#{now}) AND version=#{version}</update>
+
+  <select id="findRecentRecords" resultType="com.farmlog.records.entity.FeedRow">SELECT * FROM (
+    SELECT 'WORK' type,l.id,l.work_date record_date,l.zone_id,z.name zone_name,z.active_yn zone_active_yn,'작업' primary_label,COALESCE(w.name,'미지정') primary_value,l.created_by,u.display_name created_by_name,l.created_role,l.farmer_confirm_status,l.created_at FROM work_log l LEFT JOIN farm_zone z ON z.id=l.zone_id LEFT JOIN work_type w ON w.id=l.work_type_id LEFT JOIN users u ON u.id=l.created_by WHERE l.farm_id=#{farmId} AND l.care_assignment_id=#{assignmentId} AND l.deleted_at IS NULL
+    UNION ALL SELECT 'PEST_CONTROL',l.id,l.apply_date,l.zone_id,z.name,z.active_yn,'방제',l.chemical_name,l.created_by,u.display_name,l.created_role,l.farmer_confirm_status,l.created_at FROM pest_control_log l LEFT JOIN farm_zone z ON z.id=l.zone_id LEFT JOIN users u ON u.id=l.created_by WHERE l.farm_id=#{farmId} AND l.care_assignment_id=#{assignmentId} AND l.deleted_at IS NULL
+    UNION ALL SELECT 'HARVEST',l.id,l.harvest_date,l.zone_id,z.name,z.active_yn,'수확',CONCAT(l.quantity,' ',l.unit),l.created_by,u.display_name,l.created_role,l.farmer_confirm_status,l.created_at FROM harvest_log l LEFT JOIN farm_zone z ON z.id=l.zone_id LEFT JOIN users u ON u.id=l.created_by WHERE l.farm_id=#{farmId} AND l.care_assignment_id=#{assignmentId} AND l.deleted_at IS NULL
+    UNION ALL SELECT 'SALES',l.id,l.sales_date,NULL,NULL,NULL,'판매',COALESCE(l.item_name,CONCAT(l.quantity,' ',l.unit)),l.created_by,u.display_name,l.created_role,l.farmer_confirm_status,l.created_at FROM sales_log l LEFT JOIN users u ON u.id=l.created_by WHERE l.farm_id=#{farmId} AND l.care_assignment_id=#{assignmentId} AND l.deleted_at IS NULL
+  ) r ORDER BY record_date DESC,id DESC LIMIT #{size}</select>
+  <insert id="insertAudit">INSERT INTO audit_log(organization_id,farm_id,actor_user_id,action,target_type,target_id,detail_json,created_at) VALUES(#{organizationId},#{farmId},#{actorUserId},#{action},#{targetType},#{targetId},#{detailJson},#{now})</insert>
+</mapper>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.farmlog.user.mapper.UserMapper">
+
+    <resultMap id="userResultMap" type="com.farmlog.user.entity.UserEntity">
+        <id property="id" column="id"/>
+        <result property="email" column="email"/>
+        <result property="passwordHash" column="password_hash"/>
+        <result property="displayName" column="display_name"/>
+        <result property="status" column="status"/>
+        <result property="lastLoginAt" column="last_login_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="deletedAt" column="deleted_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.farmlog.user.entity.UserEntity" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (email, password_hash, display_name, status, created_at)
+        VALUES (#{email}, #{passwordHash}, #{displayName}, #{status}, #{createdAt})
+    </insert>
+
+    <select id="findByEmail" resultMap="userResultMap">
+        SELECT id, email, password_hash, display_name, status, last_login_at, created_at, updated_at, deleted_at
+        FROM users
+        WHERE email = #{email}
+    </select>
+
+    <select id="findById" resultMap="userResultMap">
+        SELECT id, email, password_hash, display_name, status, last_login_at, created_at, updated_at, deleted_at
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+    <update id="updateLastLoginAt">
+        UPDATE users
+        SET last_login_at = #{lastLoginAt}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updatePasswordHash">
+        UPDATE users
+        SET password_hash = #{passwordHash}, updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+</mapper>

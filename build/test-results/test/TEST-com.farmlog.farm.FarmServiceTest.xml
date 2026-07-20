@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.farmlog.farm.FarmServiceTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-07-20T07:17:48.687Z" hostname="DESKTOP-D0KHPJK" time="0.11">
+  <properties/>
+  <testcase name="updateZone_workerRole_throwsForbidden_beforeReadingZone()" classname="com.farmlog.farm.FarmServiceTest" time="0.06"/>
+  <testcase name="listZones_userNotMemberOfFarm_throwsForbidden_crossFarmAccessRejected()" classname="com.farmlog.farm.FarmServiceTest" time="0.002"/>
+  <testcase name="updateZone_partialUpdate_onlyChangesProvidedFields()" classname="com.farmlog.farm.FarmServiceTest" time="0.003"/>
+  <testcase name="updateZone_zoneBelongsToDifferentFarm_throwsFarmZoneNotFound()" classname="com.farmlog.farm.FarmServiceTest" time="0.004"/>
+  <testcase name="createZone_farmManagerRole_isAllowed()" classname="com.farmlog.farm.FarmServiceTest" time="0.003"/>
+  <testcase name="createFarm_success_createsFarmAndOwnerMemberFromOwnOrganization()" classname="com.farmlog.farm.FarmServiceTest" time="0.003"/>
+  <testcase name="createZone_success_createsZoneAndAutoGeneratesAssignmentHistoryInSameTransaction()" classname="com.farmlog.farm.FarmServiceTest" time="0.003"/>
+  <testcase name="createFarm_noOrganizationMembership_throwsOrganizationNotFound()" classname="com.farmlog.farm.FarmServiceTest" time="0.003"/>
+  <testcase name="createZone_workerRole_throwsForbidden_beforeTouchingData()" classname="com.farmlog.farm.FarmServiceTest" time="0.003"/>
+  <testcase name="createZone_userNotMemberOfFarm_throwsForbidden_beforeTouchingData()" classname="com.farmlog.farm.FarmServiceTest" time="0.003"/>
+  <testcase name="listMyFarms_returnsFarmsWithCallerRole()" classname="com.farmlog.farm.FarmServiceTest" time="0.003"/>
+  <testcase name="listZoneAssignments_userNotMemberOfFarm_throwsForbidden()" classname="com.farmlog.farm.FarmServiceTest" time="0.002"/>
+  <testcase name="createZone_farmNotFound_throwsFarmNotFound()" classname="com.farmlog.farm.FarmServiceTest" time="0.003"/>
+  <testcase name="deactivateZone_setsActiveNo_andDoesNotTouchAssignmentHistory()" classname="com.farmlog.farm.FarmServiceTest" time="0.002"/>
+  <testcase name="updateZone_changesZoneType_andClearsExplicitlyNullAreaFields()" classname="com.farmlog.farm.FarmServiceTest" time="0.003"/>
+  <testcase name="createZone_explicitZoneType_isPreservedInsteadOfDefault()" classname="com.farmlog.farm.FarmServiceTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.farmlog.masterdata.mapper.MasterDataMapper">
+
+    <resultMap id="catalogMap" type="com.farmlog.masterdata.entity.CatalogEntity">
+        <id property="id" column="id"/>
+        <result property="cropId" column="crop_id"/>
+        <result property="name" column="name"/>
+    </resultMap>
+    <resultMap id="farmCatalogMap" type="com.farmlog.masterdata.entity.FarmCatalogRow">
+        <id property="linkId" column="link_id"/>
+        <result property="farmId" column="farm_id"/>
+        <result property="cropId" column="crop_id"/>
+        <result property="varietyId" column="variety_id"/>
+        <result property="name" column="name"/>
+        <result property="displayOrder" column="display_order"/>
+        <result property="activeYn" column="active_yn"/>
+    </resultMap>
+    <resultMap id="seasonMap" type="com.farmlog.masterdata.entity.CropSeasonEntity">
+        <id property="id" column="id"/>
+        <result property="organizationId" column="organization_id"/>
+        <result property="farmId" column="farm_id"/>
+        <result property="cropId" column="crop_id"/>
+        <result property="varietyId" column="variety_id"/>
+        <result property="name" column="name"/>
+        <result property="startDate" column="start_date"/>
+        <result property="endDate" column="end_date"/>
+        <result property="status" column="status"/>
+    </resultMap>
+    <resultMap id="localMap" type="com.farmlog.masterdata.entity.LocalMasterDataRow">
+        <id property="id" column="id"/>
+        <result property="organizationId" column="organization_id"/>
+        <result property="farmId" column="farm_id"/>
+        <result property="name" column="name"/>
+        <result property="type" column="type"/>
+        <result property="phone" column="phone"/>
+        <result property="unit" column="unit"/>
+        <result property="memo" column="memo"/>
+        <result property="displayOrder" column="display_order"/>
+        <result property="activeYn" column="active_yn"/>
+    </resultMap>
+
+    <sql id="farmCropSelect">
+        SELECT fc.id AS link_id, fc.farm_id, fc.crop_id, NULL AS variety_id, c.name,
+               fc.display_order, fc.active_yn
+        FROM farm_crop fc JOIN crop c ON c.id = fc.crop_id
+    </sql>
+    <select id="findFarmCrops" resultMap="farmCatalogMap">
+        <include refid="farmCropSelect"/>
+        WHERE fc.farm_id = #{farmId}<if test="!includeInactive"> AND fc.active_yn = 'Y'</if>
+        ORDER BY fc.display_order, c.name, fc.id
+    </select>
+    <select id="findFarmCrop" resultMap="farmCatalogMap">
+        <include refid="farmCropSelect"/> WHERE fc.farm_id = #{farmId} AND fc.crop_id = #{cropId}
+    </select>
+    <select id="findCropByName" resultMap="catalogMap">
+        SELECT id, name FROM crop WHERE name = #{name}
+    </select>
+    <insert id="insertCropIfAbsent">INSERT IGNORE INTO crop (name, active_yn) VALUES (#{name}, 'Y')</insert>
+    <insert id="insertFarmCropIfAbsent">
+        INSERT IGNORE INTO farm_crop (farm_id, crop_id, display_order, active_yn, created_by, created_at)
+        VALUES (#{farmId}, #{cropId}, #{displayOrder}, 'Y', #{userId}, #{now})
+    </insert>
+    <update id="updateFarmCrop">
+        UPDATE farm_crop SET display_order=#{displayOrder}, active_yn=#{activeYn}, updated_by=#{userId}, updated_at=#{now}
+        WHERE farm_id=#{farmId} AND crop_id=#{cropId}
+    </update>
+
+    <sql id="farmVarietySelect">
+        SELECT fcv.id AS link_id, fcv.farm_id, fcv.crop_id, fcv.variety_id, cv.name,
+               fcv.display_order, fcv.active_yn
+        FROM farm_crop_variety fcv JOIN crop_variety cv ON cv.id = fcv.variety_id
+    </sql>
+    <select id="findFarmVarieties" resultMap="farmCatalogMap">
+        <include refid="farmVarietySelect"/>
+        WHERE fcv.farm_id=#{farmId} AND fcv.crop_id=#{cropId}
+        <if test="!includeInactive">AND fcv.active_yn='Y'</if>
+        ORDER BY fcv.display_order, cv.name, fcv.id
+    </select>
+    <select id="findFarmVariety" resultMap="farmCatalogMap">
+        <include refid="farmVarietySelect"/>
+        WHERE fcv.farm_id=#{farmId} AND fcv.crop_id=#{cropId} AND fcv.variety_id=#{varietyId}
+    </select>
+    <select id="findVarietyByName" resultMap="catalogMap">
+        SELECT id, crop_id, name FROM crop_variety WHERE crop_id=#{cropId} AND name=#{name}
+    </select>
+    <insert id="insertVarietyIfAbsent">
+        INSERT IGNORE INTO crop_variety (crop_id, name, active_yn) VALUES (#{cropId}, #{name}, 'Y')
+    </insert>
+    <insert id="insertFarmVarietyIfAbsent">
+        INSERT IGNORE INTO farm_crop_variety
+            (farm_id, crop_id, variety_id, display_order, active_yn, created_by, created_at)
+        VALUES (#{farmId}, #{cropId}, #{varietyId}, #{displayOrder}, 'Y', #{userId}, #{now})
+    </insert>
+    <update id="updateFarmVariety">
+        UPDATE farm_crop_variety SET crop_id=#{cropId}, display_order=#{displayOrder}, active_yn=#{activeYn},
+            updated_by=#{userId}, updated_at=#{now}
+        WHERE farm_id=#{farmId} AND variety_id=#{varietyId}
+    </update>
+
+    <select id="findCropSeasons" resultMap="seasonMap">
+        SELECT id, organization_id, farm_id, crop_id, variety_id, name, start_date, end_date, status
+        FROM crop_season WHERE farm_id=#{farmId} AND deleted_at IS NULL
+        <if test="!includeCompleted">AND status != 'COMPLETED'</if>
+        ORDER BY start_date DESC, id DESC
+    </select>
+    <select id="findCropSeason" resultMap="seasonMap">
+        SELECT id, organization_id, farm_id, crop_id, variety_id, name, start_date, end_date, status
+        FROM crop_season WHERE farm_id=#{farmId} AND id=#{seasonId} AND deleted_at IS NULL
+    </select>
+    <insert id="insertCropSeason" useGeneratedKeys="true" keyProperty="season.id">
+        INSERT INTO crop_season
+            (organization_id, farm_id, crop_id, variety_id, name, start_date, end_date, status, created_by, created_at)
+        VALUES (#{season.organizationId}, #{season.farmId}, #{season.cropId}, #{season.varietyId}, #{season.name},
+                #{season.startDate}, #{season.endDate}, #{season.status}, #{userId}, #{now})
+    </insert>
+    <update id="updateCropSeason">
+        UPDATE crop_season SET crop_id=#{season.cropId}, variety_id=#{season.varietyId}, name=#{season.name},
+            start_date=#{season.startDate}, end_date=#{season.endDate}, updated_by=#{userId}, updated_at=#{now}
+        WHERE farm_id=#{season.farmId} AND id=#{season.id} AND deleted_at IS NULL
+    </update>
+    <update id="migrateActiveSeasonsForCropVariety">
+        UPDATE crop_season
+        SET crop_id=#{newCropId}, variety_id=#{newVarietyId}, updated_by=#{userId}, updated_at=#{now}
+        WHERE farm_id=#{farmId}
+          AND crop_id=#{oldCropId}
+          AND variety_id=#{oldVarietyId}
+          AND status='ACTIVE'
+          AND deleted_at IS NULL
+    </update>
+    <update id="migrateActiveSeasonsWithoutVariety">
+        UPDATE crop_season
+        SET crop_id=#{newCropId}, updated_by=#{userId}, updated_at=#{now}
+        WHERE farm_id=#{farmId}
+          AND crop_id=#{oldCropId}
+          AND variety_id IS NULL
+          AND status='ACTIVE'
+          AND deleted_at IS NULL
+    </update>
+    <update id="migrateActiveSeasonsForVariety">
+        UPDATE crop_season
+        SET variety_id=#{newVarietyId}, updated_by=#{userId}, updated_at=#{now}
+        WHERE farm_id=#{farmId}
+          AND crop_id=#{cropId}
+          AND variety_id=#{oldVarietyId}
+          AND status='ACTIVE'
+          AND deleted_at IS NULL
+    </update>
+    <update id="completeCropSeason">
+        UPDATE crop_season SET status='COMPLETED', end_date=#{endDate}, updated_by=#{userId}, updated_at=#{now}
+        WHERE farm_id=#{farmId} AND id=#{seasonId} AND deleted_at IS NULL
+    </update>
+    <update id="softDeleteCropSeason">
+        UPDATE crop_season SET deleted_at=#{now}, updated_by=#{userId}, updated_at=#{now}
+        WHERE farm_id=#{farmId} AND id=#{seasonId} AND deleted_at IS NULL
+    </update>
+
+    <sql id="workTypeSelect">
+        SELECT id, organization_id, farm_id, name, NULL AS type, NULL AS phone, NULL AS unit, NULL AS memo,
+               display_order, active_yn FROM work_type
+    </sql>
+    <select id="findWorkTypes" resultMap="localMap">
+        <include refid="workTypeSelect"/> WHERE farm_id=#{farmId}<if test="!includeInactive"> AND active_yn='Y'</if>
+        ORDER BY display_order, name, id
+    </select>
+    <select id="findWorkType" resultMap="localMap">
+        <include refid="workTypeSelect"/> WHERE farm_id=#{farmId} AND id=#{id}
+    </select>
+    <select id="findWorkTypeByName" resultMap="localMap">
+        <include refid="workTypeSelect"/> WHERE farm_id=#{farmId} AND name=#{name}
+    </select>
+    <insert id="insertWorkTypeIfAbsent">
+        INSERT IGNORE INTO work_type
+            (organization_id, farm_id, name, display_order, active_yn, created_by, created_at)
+        VALUES (#{organizationId}, #{farmId}, #{name}, #{displayOrder}, 'Y', #{userId}, #{now})
+    </insert>
+    <update id="updateWorkType">
+        UPDATE work_type SET name=#{name}, display_order=#{displayOrder}, active_yn=#{activeYn},
+            updated_by=#{userId}, updated_at=#{now} WHERE farm_id=#{farmId} AND id=#{id}
+    </update>
+
+    <sql id="customerSelect">
+        SELECT id, organization_id, farm_id, name, customer_type AS type, phone, NULL AS unit, memo,
+               0 AS display_order, active_yn FROM customer WHERE deleted_at IS NULL
+    </sql>
+    <select id="findCustomers" resultMap="localMap">
+        <include refid="customerSelect"/> AND farm_id=#{farmId}<if test="!includeInactive"> AND active_yn='Y'</if>
+        ORDER BY name, id
+    </select>
+    <select id="findCustomer" resultMap="localMap">
+        <include refid="customerSelect"/> AND farm_id=#{farmId} AND id=#{id}
+    </select>
+    <select id="findCustomerByName" resultMap="localMap">
+        <include refid="customerSelect"/> AND farm_id=#{farmId} AND name=#{name}
+    </select>
+    <insert id="insertCustomer">
+        INSERT INTO customer (organization_id,farm_id,name,customer_type,phone,memo,active_yn,created_by,created_at)
+        VALUES (#{organizationId},#{farmId},#{name},#{type},#{phone},#{memo},'Y',#{userId},#{now})
+    </insert>
+    <update id="updateCustomer">
+        UPDATE customer SET name=#{name}, customer_type=#{type}, phone=#{phone}, memo=#{memo}, active_yn=#{activeYn},
+            updated_by=#{userId}, updated_at=#{now} WHERE farm_id=#{farmId} AND id=#{id} AND deleted_at IS NULL
+    </update>
+
+    <sql id="materialSelect">
+        SELECT id, organization_id, farm_id, name, material_type AS type, NULL AS phone, unit, memo,
+               0 AS display_order, active_yn FROM material WHERE deleted_at IS NULL
+    </sql>
+    <select id="findMaterials" resultMap="localMap">
+        <include refid="materialSelect"/> AND farm_id=#{farmId}<if test="!includeInactive"> AND active_yn='Y'</if>
+        ORDER BY name, id
+    </select>
+    <select id="findMaterial" resultMap="localMap">
+        <include refid="materialSelect"/> AND farm_id=#{farmId} AND id=#{id}
+    </select>
+    <select id="findMaterialByName" resultMap="localMap">
+        <include refid="materialSelect"/> AND farm_id=#{farmId} AND name=#{name}
+    </select>
+    <insert id="insertMaterial">
+        INSERT INTO material (organization_id,farm_id,name,material_type,unit,memo,active_yn,created_by,created_at)
+        VALUES (#{organizationId},#{farmId},#{name},#{type},#{unit},#{memo},'Y',#{userId},#{now})
+    </insert>
+    <update id="updateMaterial">
+        UPDATE material SET name=#{name}, material_type=#{type}, unit=#{unit}, memo=#{memo}, active_yn=#{activeYn},
+            updated_by=#{userId}, updated_at=#{now} WHERE farm_id=#{farmId} AND id=#{id} AND deleted_at IS NULL
+    </update>
+</mapper>

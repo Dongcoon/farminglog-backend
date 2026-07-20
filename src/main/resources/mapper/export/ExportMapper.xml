@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.farmlog.export.mapper.ExportMapper">
+    <resultMap id="jobMap" type="com.farmlog.export.entity.ExportJobRow">
+        <id property="id" column="id"/><result property="organizationId" column="organization_id"/>
+        <result property="farmId" column="farm_id"/><result property="exportType" column="export_type"/>
+        <result property="scopesJson" column="scopes_json"/><result property="confirmationFilter" column="confirmation_filter"/>
+        <result property="clientRequestId" column="client_request_id"/><result property="periodStart" column="period_start"/>
+        <result property="periodEnd" column="period_end"/><result property="status" column="status"/>
+        <result property="fileId" column="file_id"/><result property="errorCode" column="error_code"/>
+        <result property="errorMessage" column="error_message"/><result property="requestedBy" column="requested_by"/>
+        <result property="requestedByName" column="requested_by_name"/><result property="requestedAt" column="requested_at"/>
+        <result property="startedAt" column="started_at"/><result property="completedAt" column="completed_at"/>
+        <result property="expiresAt" column="expires_at"/><result property="leaseUntil" column="lease_until"/>
+        <result property="claimToken" column="claim_token"/>
+        <result property="attemptCount" column="attempt_count"/><result property="updatedAt" column="updated_at"/>
+        <result property="originalFileName" column="original_file_name"/><result property="storedFileName" column="stored_file_name"/>
+        <result property="contentType" column="content_type"/><result property="fileSize" column="file_size"/>
+        <result property="storagePath" column="storage_path"/>
+    </resultMap>
+    <resultMap id="recordMap" type="com.farmlog.export.entity.ExportRecordRow">
+        <id property="id" column="id"/><result property="recordDate" column="record_date"/>
+        <result property="zoneName" column="zone_name"/><result property="cropName" column="crop_name"/>
+        <result property="varietyName" column="variety_name"/><result property="seasonName" column="season_name"/>
+        <result property="workTypeName" column="work_type_name"/><result property="customerName" column="customer_name"/>
+        <result property="workerCount" column="worker_count"/><result property="workHours" column="work_hours"/>
+        <result property="chemicalName" column="chemical_name"/><result property="targetPest" column="target_pest"/>
+        <result property="dilutionRatio" column="dilution_ratio"/><result property="amountValue" column="amount_value"/>
+        <result property="amountUnit" column="amount_unit"/><result property="preharvestIntervalDays" column="preharvest_interval_days"/>
+        <result property="grade" column="grade"/><result property="quantity" column="quantity"/><result property="unit" column="unit"/>
+        <result property="packageUnit" column="package_unit"/><result property="itemName" column="item_name"/>
+        <result property="unitPrice" column="unit_price"/><result property="grossAmount" column="gross_amount"/>
+        <result property="feeAmount" column="fee_amount"/><result property="netAmount" column="net_amount"/>
+        <result property="settlementStatus" column="settlement_status"/><result property="memo" column="memo"/>
+        <result property="farmerConfirmStatus" column="farmer_confirm_status"/>
+        <result property="createdByName" column="created_by_name"/><result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <sql id="jobColumns">
+        SELECT j.*,u.display_name requested_by_name,a.original_file_name,a.stored_file_name,a.content_type,a.file_size,a.storage_path
+        FROM export_job j LEFT JOIN users u ON u.id=j.requested_by LEFT JOIN attachment_file a ON a.id=j.file_id
+    </sql>
+    <select id="findByClientRequestId" resultMap="jobMap"><include refid="jobColumns"/>
+        WHERE j.farm_id=#{farmId} AND j.client_request_id=#{clientRequestId}</select>
+    <select id="findByClientRequestIdForUpdate" resultMap="jobMap"><include refid="jobColumns"/>
+        WHERE j.farm_id=#{farmId} AND j.client_request_id=#{clientRequestId} FOR UPDATE</select>
+    <select id="findById" resultMap="jobMap"><include refid="jobColumns"/>
+        WHERE j.farm_id=#{farmId} AND j.id=#{id}</select>
+    <select id="findWorkerJob" resultMap="jobMap"><include refid="jobColumns"/> WHERE j.id=#{id}</select>
+    <select id="findPage" resultMap="jobMap"><include refid="jobColumns"/> WHERE j.farm_id=#{farmId}
+        ORDER BY j.requested_at DESC,j.id DESC LIMIT #{size} OFFSET #{offset}</select>
+    <select id="countPage" resultType="long">SELECT COUNT(*) FROM export_job WHERE farm_id=#{farmId}</select>
+    <insert id="insertJob" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO export_job (organization_id,farm_id,export_type,scopes_json,confirmation_filter,client_request_id,
+          period_start,period_end,status,requested_by,requested_at,attempt_count)
+        VALUES (#{organizationId},#{farmId},#{exportType},#{scopesJson},#{confirmationFilter},#{clientRequestId},
+          #{periodStart},#{periodEnd},'REQUESTED',#{requestedBy},#{requestedAt},0)
+    </insert>
+
+    <sql id="verified"><if test="confirmationFilter.name() == 'VERIFIED'"> AND farmer_confirm_status IN ('NOT_REQUIRED','CONFIRMED')</if></sql>
+    <select id="countRows" resultType="long">
+        SELECT COUNT(*) FROM
+        <choose><when test="scope.name() == 'WORK'">work_log</when><when test="scope.name() == 'PEST_CONTROL'">pest_control_log</when>
+          <when test="scope.name() == 'HARVEST'">harvest_log</when><otherwise>sales_log</otherwise></choose>
+        WHERE farm_id=#{farmId} AND deleted_at IS NULL AND
+        <choose><when test="scope.name() == 'WORK'">work_date</when><when test="scope.name() == 'PEST_CONTROL'">apply_date</when>
+          <when test="scope.name() == 'HARVEST'">harvest_date</when><otherwise>sales_date</otherwise></choose>
+        BETWEEN #{dateFrom} AND #{dateTo}<include refid="verified"/>
+    </select>
+
+    <select id="findClaimCandidate" resultMap="jobMap">
+        SELECT * FROM export_job j WHERE
+          (j.status='REQUESTED' OR (j.status='PROCESSING' AND (j.lease_until IS NULL OR j.lease_until&lt;#{now})))
+          AND j.attempt_count&lt;#{maxAttempts}
+        ORDER BY j.requested_at,j.id LIMIT 1 FOR UPDATE
+    </select>
+    <select id="findExhaustedStale" resultMap="jobMap">SELECT * FROM export_job j WHERE j.status='PROCESSING' AND (j.lease_until IS NULL OR j.lease_until&lt;#{now}) AND j.attempt_count&gt;=#{maxAttempts} FOR UPDATE</select>
+    <update id="markProcessing">UPDATE export_job SET status='PROCESSING',started_at=COALESCE(started_at,#{now}),
+        lease_until=#{leaseUntil},claim_token=#{claimToken},attempt_count=attempt_count+1,error_code=NULL,error_message=NULL,updated_at=#{now} WHERE id=#{id}</update>
+    <update id="renewLease">UPDATE export_job SET lease_until=#{leaseUntil},updated_at=NOW(6) WHERE id=#{id} AND status='PROCESSING' AND claim_token=#{claimToken}</update>
+    <update id="requeue">UPDATE export_job SET status='REQUESTED',lease_until=NULL,claim_token=NULL,error_code=#{errorCode},error_message=#{errorMessage},updated_at=#{now} WHERE id=#{id} AND status='PROCESSING' AND claim_token=#{claimToken}</update>
+    <update id="markFailed">UPDATE export_job SET status='FAILED',lease_until=NULL,claim_token=NULL,error_code=#{errorCode},error_message=#{errorMessage},completed_at=#{now},updated_at=#{now} WHERE id=#{id} AND status='PROCESSING' AND claim_token=#{claimToken}</update>
+    <update id="markExhaustedFailed">UPDATE export_job SET status='FAILED',lease_until=NULL,claim_token=NULL,error_code=#{errorCode},error_message=#{errorMessage},completed_at=#{now},updated_at=#{now}
+      WHERE id=#{id} AND status='PROCESSING' AND attempt_count&gt;=#{maxAttempts} AND (lease_until IS NULL OR lease_until&lt;#{now})</update>
+    <update id="markCompleted">UPDATE export_job SET status='COMPLETED',file_id=#{fileId},completed_at=#{completedAt},expires_at=#{expiresAt},lease_until=NULL,claim_token=NULL,error_code=NULL,error_message=NULL,updated_at=#{completedAt} WHERE id=#{id} AND status='PROCESSING' AND claim_token=#{claimToken}</update>
+    <update id="markExpired">UPDATE export_job SET status='EXPIRED',updated_at=#{now} WHERE id=#{id} AND status='COMPLETED'</update>
+    <select id="findExpiredCompleted" resultMap="jobMap"><include refid="jobColumns"/>
+        WHERE j.status='COMPLETED' AND j.expires_at&lt;=#{now} ORDER BY j.expires_at,j.id LIMIT #{limit}</select>
+    <insert id="insertFile" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO attachment_file (organization_id,farm_id,ref_type,ref_id,original_file_name,stored_file_name,
+          content_type,file_size,storage_type,storage_path,created_by,created_at)
+        VALUES (#{organizationId},#{farmId},#{refType},#{refId},#{originalFileName},#{storedFileName},
+          #{contentType},#{fileSize},#{storageType},#{storagePath},#{createdBy},#{createdAt})
+    </insert>
+    <update id="softDeleteFile">UPDATE attachment_file SET deleted_at=#{now} WHERE id=#{id} AND deleted_at IS NULL</update>
+
+    <select id="streamRecords" resultMap="recordMap" fetchSize="500">
+        <choose>
+          <when test="scope.name() == 'WORK'">
+            SELECT l.id,l.work_date record_date,z.name zone_name,c.name crop_name,v.name variety_name,s.name season_name,
+              wt.name work_type_name,NULL customer_name,l.worker_count,l.work_hours,NULL chemical_name,NULL target_pest,
+              NULL dilution_ratio,NULL amount_value,NULL amount_unit,NULL preharvest_interval_days,NULL grade,NULL quantity,
+              NULL unit,NULL package_unit,NULL item_name,NULL unit_price,NULL gross_amount,NULL fee_amount,NULL net_amount,
+              NULL settlement_status,l.memo,l.farmer_confirm_status,u.display_name created_by_name,l.created_at
+            FROM work_log l LEFT JOIN farm_zone z ON z.id=l.zone_id
+              LEFT JOIN crop c ON c.id=l.crop_id LEFT JOIN crop_variety v ON v.id=l.variety_id
+              LEFT JOIN crop_season s ON s.id=l.season_id AND s.farm_id=l.farm_id
+              LEFT JOIN work_type wt ON wt.id=l.work_type_id AND wt.farm_id=l.farm_id LEFT JOIN users u ON u.id=l.created_by
+            WHERE l.farm_id=#{farmId} AND l.deleted_at IS NULL AND l.work_date BETWEEN #{dateFrom} AND #{dateTo}
+            <if test="confirmationFilter.name() == 'VERIFIED'">AND l.farmer_confirm_status IN ('NOT_REQUIRED','CONFIRMED')</if>
+            ORDER BY l.work_date,l.id
+          </when>
+          <when test="scope.name() == 'PEST_CONTROL'">
+            SELECT l.id,l.apply_date record_date,z.name zone_name,c.name crop_name,v.name variety_name,s.name season_name,
+              NULL work_type_name,NULL customer_name,NULL worker_count,NULL work_hours,l.chemical_name,l.target_pest,
+              l.dilution_ratio,l.amount_value,l.amount_unit,l.preharvest_interval_days,NULL grade,NULL quantity,NULL unit,
+              NULL package_unit,NULL item_name,NULL unit_price,NULL gross_amount,NULL fee_amount,NULL net_amount,
+              NULL settlement_status,l.memo,l.farmer_confirm_status,u.display_name created_by_name,l.created_at
+            FROM pest_control_log l LEFT JOIN farm_zone z ON z.id=l.zone_id
+              LEFT JOIN crop c ON c.id=l.crop_id LEFT JOIN crop_variety v ON v.id=l.variety_id
+              LEFT JOIN crop_season s ON s.id=l.season_id AND s.farm_id=l.farm_id LEFT JOIN users u ON u.id=l.created_by
+            WHERE l.farm_id=#{farmId} AND l.deleted_at IS NULL AND l.apply_date BETWEEN #{dateFrom} AND #{dateTo}
+            <if test="confirmationFilter.name() == 'VERIFIED'">AND l.farmer_confirm_status IN ('NOT_REQUIRED','CONFIRMED')</if>
+            ORDER BY l.apply_date,l.id
+          </when>
+          <when test="scope.name() == 'HARVEST'">
+            SELECT l.id,l.harvest_date record_date,z.name zone_name,c.name crop_name,v.name variety_name,s.name season_name,
+              NULL work_type_name,NULL customer_name,NULL worker_count,NULL work_hours,NULL chemical_name,NULL target_pest,
+              NULL dilution_ratio,NULL amount_value,NULL amount_unit,NULL preharvest_interval_days,l.grade,l.quantity,
+              LOWER(TRIM(l.unit)) unit,l.package_unit,NULL item_name,NULL unit_price,NULL gross_amount,NULL fee_amount,NULL net_amount,
+              NULL settlement_status,l.memo,l.farmer_confirm_status,u.display_name created_by_name,l.created_at
+            FROM harvest_log l LEFT JOIN farm_zone z ON z.id=l.zone_id
+              LEFT JOIN crop c ON c.id=l.crop_id LEFT JOIN crop_variety v ON v.id=l.variety_id
+              LEFT JOIN crop_season s ON s.id=l.season_id AND s.farm_id=l.farm_id LEFT JOIN users u ON u.id=l.created_by
+            WHERE l.farm_id=#{farmId} AND l.deleted_at IS NULL AND l.harvest_date BETWEEN #{dateFrom} AND #{dateTo}
+            <if test="confirmationFilter.name() == 'VERIFIED'">AND l.farmer_confirm_status IN ('NOT_REQUIRED','CONFIRMED')</if>
+            ORDER BY l.harvest_date,l.id
+          </when>
+          <otherwise>
+            SELECT l.id,l.sales_date record_date,NULL zone_name,NULL crop_name,NULL variety_name,NULL season_name,
+              NULL work_type_name,c.name customer_name,NULL worker_count,NULL work_hours,NULL chemical_name,NULL target_pest,
+              NULL dilution_ratio,NULL amount_value,NULL amount_unit,NULL preharvest_interval_days,NULL grade,l.quantity,
+              LOWER(TRIM(l.unit)) unit,NULL package_unit,l.item_name,l.unit_price,l.gross_amount,l.fee_amount,l.net_amount,
+              l.settlement_status,l.memo,l.farmer_confirm_status,u.display_name created_by_name,l.created_at
+            FROM sales_log l LEFT JOIN customer c ON c.id=l.customer_id AND c.farm_id=l.farm_id LEFT JOIN users u ON u.id=l.created_by
+            WHERE l.farm_id=#{farmId} AND l.deleted_at IS NULL AND l.sales_date BETWEEN #{dateFrom} AND #{dateTo}
+            <if test="confirmationFilter.name() == 'VERIFIED'">AND l.farmer_confirm_status IN ('NOT_REQUIRED','CONFIRMED')</if>
+            ORDER BY l.sales_date,l.id
+          </otherwise>
+        </choose>
+    </select>
+
+    <select id="findSummaryCounts" resultType="com.farmlog.report.entity.RecordCountRow">
+      SELECT record_type,COUNT(*) record_count,0 manager_input_count FROM (
+        SELECT 'WORK' record_type FROM work_log WHERE farm_id=#{farmId} AND deleted_at IS NULL AND work_date BETWEEN #{dateFrom} AND #{dateTo}<include refid="verified"/>
+        UNION ALL SELECT 'PEST_CONTROL' FROM pest_control_log WHERE farm_id=#{farmId} AND deleted_at IS NULL AND apply_date BETWEEN #{dateFrom} AND #{dateTo}<include refid="verified"/>
+        UNION ALL SELECT 'HARVEST' FROM harvest_log WHERE farm_id=#{farmId} AND deleted_at IS NULL AND harvest_date BETWEEN #{dateFrom} AND #{dateTo}<include refid="verified"/>
+        UNION ALL SELECT 'SALES' FROM sales_log WHERE farm_id=#{farmId} AND deleted_at IS NULL AND sales_date BETWEEN #{dateFrom} AND #{dateTo}<include refid="verified"/>
+      ) r GROUP BY record_type
+    </select>
+    <select id="findSummaryHarvest" resultType="com.farmlog.report.entity.AveragePriceRow">
+      SELECT LOWER(TRIM(unit)) unit,SUM(quantity) sold_quantity,0 gross_sales_amount FROM harvest_log
+      WHERE farm_id=#{farmId} AND deleted_at IS NULL AND harvest_date BETWEEN #{dateFrom} AND #{dateTo}<include refid="verified"/>
+      GROUP BY LOWER(TRIM(unit)) ORDER BY unit
+    </select>
+    <select id="findSummarySales" resultType="com.farmlog.report.entity.SalesComparisonRow">
+      SELECT COALESCE(SUM(gross_amount),0) current_gross,COALESCE(SUM(fee_amount),0) current_fee,
+        COALESCE(SUM(net_amount),0) current_net,COUNT(*) current_count FROM sales_log
+      WHERE farm_id=#{farmId} AND deleted_at IS NULL AND sales_date BETWEEN #{dateFrom} AND #{dateTo}<include refid="verified"/>
+    </select>
+    <select id="findSummaryAveragePrices" resultType="com.farmlog.report.entity.AveragePriceRow">
+      SELECT LOWER(TRIM(unit)) unit,SUM(quantity) sold_quantity,SUM(gross_amount) gross_sales_amount FROM sales_log
+      WHERE farm_id=#{farmId} AND deleted_at IS NULL AND sales_date BETWEEN #{dateFrom} AND #{dateTo}<include refid="verified"/>
+      GROUP BY LOWER(TRIM(unit)) HAVING SUM(quantity)&gt;0 ORDER BY unit
+    </select>
+
+    <insert id="insertAudit">
+      INSERT INTO audit_log (organization_id,farm_id,actor_user_id,action,target_type,target_id,detail_json,created_at)
+      VALUES (#{organizationId},#{farmId},#{actorUserId},#{action},'EXPORT_JOB',#{targetId},#{detailJson},#{now})
+    </insert>
+</mapper>

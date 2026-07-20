@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.farmlog.report.mapper.ReportMapper">
+    <select id="findRecordCounts" resultType="com.farmlog.report.entity.RecordCountRow">
+        SELECT record_type,COUNT(*) record_count,
+               COALESCE(SUM(CASE WHEN created_role='FARM_CARE_MANAGER' THEN 1 ELSE 0 END),0) manager_input_count
+        FROM (
+            SELECT 'WORK' record_type,created_role FROM work_log WHERE farm_id=#{farmId} AND deleted_at IS NULL AND work_date&gt;=#{start} AND work_date&lt;#{endExclusive}
+            UNION ALL SELECT 'PEST_CONTROL',created_role FROM pest_control_log WHERE farm_id=#{farmId} AND deleted_at IS NULL AND apply_date&gt;=#{start} AND apply_date&lt;#{endExclusive}
+            UNION ALL SELECT 'HARVEST',created_role FROM harvest_log WHERE farm_id=#{farmId} AND deleted_at IS NULL AND harvest_date&gt;=#{start} AND harvest_date&lt;#{endExclusive}
+            UNION ALL SELECT 'SALES',created_role FROM sales_log WHERE farm_id=#{farmId} AND deleted_at IS NULL AND sales_date&gt;=#{start} AND sales_date&lt;#{endExclusive}
+        ) records GROUP BY record_type
+    </select>
+
+    <select id="findHarvestComparison" resultType="com.farmlog.report.entity.HarvestComparisonRow">
+        SELECT LOWER(TRIM(unit)) unit,
+          COALESCE(SUM(CASE WHEN harvest_date&gt;=#{currentStart} THEN quantity ELSE 0 END),0) current_quantity,
+          COALESCE(SUM(CASE WHEN harvest_date&lt;#{currentStart} THEN quantity ELSE 0 END),0) previous_quantity,
+          SUM(CASE WHEN harvest_date&gt;=#{currentStart} THEN 1 ELSE 0 END) current_count,
+          SUM(CASE WHEN harvest_date&lt;#{currentStart} THEN 1 ELSE 0 END) previous_count
+        FROM harvest_log WHERE farm_id=#{farmId} AND deleted_at IS NULL
+          AND harvest_date&gt;=#{previousStart} AND harvest_date&lt;#{endExclusive}
+        GROUP BY LOWER(TRIM(unit)) ORDER BY unit
+    </select>
+
+    <select id="findSalesComparison" resultType="com.farmlog.report.entity.SalesComparisonRow">
+        SELECT
+          COALESCE(SUM(CASE WHEN sales_date&gt;=#{currentStart} THEN gross_amount ELSE 0 END),0) current_gross,
+          COALESCE(SUM(CASE WHEN sales_date&gt;=#{currentStart} THEN fee_amount ELSE 0 END),0) current_fee,
+          COALESCE(SUM(CASE WHEN sales_date&gt;=#{currentStart} THEN net_amount ELSE 0 END),0) current_net,
+          COALESCE(SUM(CASE WHEN sales_date&lt;#{currentStart} THEN gross_amount ELSE 0 END),0) previous_gross,
+          COALESCE(SUM(CASE WHEN sales_date&lt;#{currentStart} THEN fee_amount ELSE 0 END),0) previous_fee,
+          COALESCE(SUM(CASE WHEN sales_date&lt;#{currentStart} THEN net_amount ELSE 0 END),0) previous_net,
+          SUM(CASE WHEN sales_date&gt;=#{currentStart} THEN 1 ELSE 0 END) current_count,
+          SUM(CASE WHEN sales_date&lt;#{currentStart} THEN 1 ELSE 0 END) previous_count
+        FROM sales_log WHERE farm_id=#{farmId} AND deleted_at IS NULL
+          AND sales_date&gt;=#{previousStart} AND sales_date&lt;#{endExclusive}
+    </select>
+
+    <select id="findAverageUnitPrices" resultType="com.farmlog.report.entity.AveragePriceRow">
+        SELECT LOWER(TRIM(unit)) unit,SUM(quantity) sold_quantity,SUM(gross_amount) gross_sales_amount
+        FROM sales_log WHERE farm_id=#{farmId} AND deleted_at IS NULL
+          AND sales_date&gt;=#{start} AND sales_date&lt;#{endExclusive}
+        GROUP BY LOWER(TRIM(unit)) HAVING SUM(quantity)&gt;0 ORDER BY unit
+    </select>
+
+    <select id="findHarvestByZone" resultType="com.farmlog.report.entity.HarvestBreakdownRow">
+        SELECT l.zone_id id,COALESCE(z.name,'미지정') name,LOWER(TRIM(l.unit)) unit,SUM(l.quantity) quantity,
+          COUNT(*) record_count,COALESCE(SUM(CASE WHEN l.created_role='FARM_CARE_MANAGER' THEN 1 ELSE 0 END),0) manager_input_count
+        FROM harvest_log l LEFT JOIN farm_zone z ON z.id=l.zone_id
+        WHERE l.farm_id=#{farmId} AND l.deleted_at IS NULL AND l.harvest_date&gt;=#{start} AND l.harvest_date&lt;#{endExclusive}
+        GROUP BY l.zone_id,z.name,LOWER(TRIM(l.unit)) ORDER BY name,id,unit
+    </select>
+
+    <select id="findHarvestByVariety" resultType="com.farmlog.report.entity.HarvestBreakdownRow">
+        SELECT l.variety_id id,COALESCE(v.name,'미지정') name,LOWER(TRIM(l.unit)) unit,SUM(l.quantity) quantity,
+          COUNT(*) record_count,COALESCE(SUM(CASE WHEN l.created_role='FARM_CARE_MANAGER' THEN 1 ELSE 0 END),0) manager_input_count
+        FROM harvest_log l LEFT JOIN crop_variety v ON v.id=l.variety_id
+        WHERE l.farm_id=#{farmId} AND l.deleted_at IS NULL AND l.harvest_date&gt;=#{start} AND l.harvest_date&lt;#{endExclusive}
+        GROUP BY l.variety_id,v.name,LOWER(TRIM(l.unit)) ORDER BY name,id,unit
+    </select>
+
+    <select id="findSalesByCustomer" resultType="com.farmlog.report.entity.CustomerBreakdownRow">
+        SELECT l.customer_id id,COALESCE(c.name,'미지정') name,SUM(l.gross_amount) gross_sales_amount,
+          SUM(l.fee_amount) fee_amount,SUM(l.net_amount) net_sales_amount,COUNT(*) record_count,
+          COALESCE(SUM(CASE WHEN l.created_role='FARM_CARE_MANAGER' THEN 1 ELSE 0 END),0) manager_input_count
+        FROM sales_log l LEFT JOIN customer c ON c.farm_id=l.farm_id AND c.id=l.customer_id
+        WHERE l.farm_id=#{farmId} AND l.deleted_at IS NULL AND l.sales_date&gt;=#{start} AND l.sales_date&lt;#{endExclusive}
+        GROUP BY l.customer_id,c.name ORDER BY name,id
+    </select>
+
+    <select id="countOwnerCapabilities" resultType="long">
+      SELECT COUNT(*) FROM farm f JOIN farm_member fm ON fm.farm_id=f.id AND fm.user_id=#{userId}
+      WHERE f.owner_user_id=#{userId} AND fm.role='FARM_OWNER' AND fm.status='ACTIVE'
+    </select>
+    <select id="findAggregateFarms" resultType="com.farmlog.report.entity.AggregateFarmRow">
+      SELECT DISTINCT f.id farm_id,f.name farm_name FROM farm f
+      JOIN farm_member fm ON fm.farm_id=f.id AND fm.user_id=#{userId}
+      WHERE f.owner_user_id=#{userId} AND fm.role='FARM_OWNER' AND fm.status='ACTIVE'
+        AND f.status='ACTIVE' AND f.lifecycle_status='ACTIVE' AND f.deleted_at IS NULL
+      ORDER BY f.id
+    </select>
+    <sql id="farmIds"> IN <foreach collection="farmIds" item="id" open="(" separator="," close=")">#{id}</foreach></sql>
+    <select id="findAggregateRecordCounts" resultType="com.farmlog.report.entity.AggregateRecordCountRow">
+      SELECT farm_id,record_type,COUNT(*) record_count,COALESCE(SUM(CASE WHEN created_role='FARM_CARE_MANAGER' THEN 1 ELSE 0 END),0) manager_input_count FROM (
+        SELECT farm_id,'WORK' record_type,created_role FROM work_log WHERE farm_id<include refid="farmIds"/> AND deleted_at IS NULL AND work_date&gt;=#{start} AND work_date&lt;#{endExclusive}
+        UNION ALL SELECT farm_id,'PEST_CONTROL',created_role FROM pest_control_log WHERE farm_id<include refid="farmIds"/> AND deleted_at IS NULL AND apply_date&gt;=#{start} AND apply_date&lt;#{endExclusive}
+        UNION ALL SELECT farm_id,'HARVEST',created_role FROM harvest_log WHERE farm_id<include refid="farmIds"/> AND deleted_at IS NULL AND harvest_date&gt;=#{start} AND harvest_date&lt;#{endExclusive}
+        UNION ALL SELECT farm_id,'SALES',created_role FROM sales_log WHERE farm_id<include refid="farmIds"/> AND deleted_at IS NULL AND sales_date&gt;=#{start} AND sales_date&lt;#{endExclusive}
+      ) r GROUP BY farm_id,record_type ORDER BY farm_id,record_type
+    </select>
+    <select id="findAggregateHarvestComparison" resultType="com.farmlog.report.entity.AggregateHarvestRow">
+      SELECT farm_id,LOWER(TRIM(unit)) unit,
+        COALESCE(SUM(CASE WHEN harvest_date&gt;=#{currentStart} THEN quantity ELSE 0 END),0) current_quantity,
+        COALESCE(SUM(CASE WHEN harvest_date&lt;#{currentStart} THEN quantity ELSE 0 END),0) previous_quantity,
+        SUM(CASE WHEN harvest_date&gt;=#{currentStart} THEN 1 ELSE 0 END) current_count,
+        SUM(CASE WHEN harvest_date&lt;#{currentStart} THEN 1 ELSE 0 END) previous_count
+      FROM harvest_log WHERE farm_id<include refid="farmIds"/> AND deleted_at IS NULL AND harvest_date&gt;=#{previousStart} AND harvest_date&lt;#{endExclusive}
+      GROUP BY farm_id,LOWER(TRIM(unit)) ORDER BY farm_id,unit
+    </select>
+    <select id="findAggregateSalesComparison" resultType="com.farmlog.report.entity.AggregateSalesRow">
+      SELECT farm_id,
+        COALESCE(SUM(CASE WHEN sales_date&gt;=#{currentStart} THEN gross_amount ELSE 0 END),0) current_gross,
+        COALESCE(SUM(CASE WHEN sales_date&gt;=#{currentStart} THEN fee_amount ELSE 0 END),0) current_fee,
+        COALESCE(SUM(CASE WHEN sales_date&gt;=#{currentStart} THEN net_amount ELSE 0 END),0) current_net,
+        COALESCE(SUM(CASE WHEN sales_date&lt;#{currentStart} THEN gross_amount ELSE 0 END),0) previous_gross,
+        COALESCE(SUM(CASE WHEN sales_date&lt;#{currentStart} THEN fee_amount ELSE 0 END),0) previous_fee,
+        COALESCE(SUM(CASE WHEN sales_date&lt;#{currentStart} THEN net_amount ELSE 0 END),0) previous_net,
+        SUM(CASE WHEN sales_date&gt;=#{currentStart} THEN 1 ELSE 0 END) current_count,
+        SUM(CASE WHEN sales_date&lt;#{currentStart} THEN 1 ELSE 0 END) previous_count
+      FROM sales_log WHERE farm_id<include refid="farmIds"/> AND deleted_at IS NULL AND sales_date&gt;=#{previousStart} AND sales_date&lt;#{endExclusive}
+      GROUP BY farm_id ORDER BY farm_id
+    </select>
+    <select id="findAggregateAverageUnitPrices" resultType="com.farmlog.report.entity.AggregateAverageRow">
+      SELECT farm_id,LOWER(TRIM(unit)) unit,SUM(quantity) sold_quantity,SUM(gross_amount) gross_sales_amount
+      FROM sales_log WHERE farm_id<include refid="farmIds"/> AND deleted_at IS NULL AND sales_date&gt;=#{start} AND sales_date&lt;#{endExclusive}
+      GROUP BY farm_id,LOWER(TRIM(unit)) HAVING SUM(quantity)&gt;0 ORDER BY farm_id,unit
+    </select>
+</mapper>

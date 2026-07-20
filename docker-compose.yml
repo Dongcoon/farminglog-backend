@@ -1,0 +1,92 @@
+# Farmlog 로컬 Docker Compose
+# DB는 기존 서버 MariaDB에 연결하므로 mariadb 서비스는 기본적으로 포함하지 않는다.
+# (격리된 로컬 DB가 필요하면 `local-db` profile을 명시적으로 사용한다.)
+#
+# 사용법:
+#   1) backend/.env 파일에 DB_PASSWORD 등 실제 값을 채운다 (.env.example 참고)
+#   2) app/backend 디렉터리에서: docker compose up -d --build
+#   3) API: http://localhost:8080/api/v1/swagger-ui.html
+#   4) 웹:  http://localhost:80
+
+services:
+  farmlog-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: farmlog-api
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+    ports:
+      - "8080:8080"
+    volumes:
+      - farmlog-uploads:/app/uploads
+      - farmlog-exports:/app/exports
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8080/api/v1/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  farmlog-web:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+    container_name: farmlog-web
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+
+  farmlog-nginx:
+    image: nginx:1.27-alpine
+    container_name: farmlog-nginx
+    depends_on:
+      farmlog-api:
+        condition: service_healthy
+      farmlog-web:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+
+  # 외부 MariaDB를 건드리지 않는 독립 리허설이 필요할 때만 명시적으로 기동한다.
+  # .env의 DB_HOST를 farmlog-mariadb로 바꾸고 `--profile local-db`를 사용한다.
+  farmlog-mariadb:
+    profiles: ["local-db"]
+    image: mariadb:11.4
+    container_name: farmlog-mariadb
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD}
+      MARIADB_DATABASE: ${DB_NAME:-farming}
+    ports:
+      - "3306:3306"
+    volumes:
+      - farmlog-db-data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  farmlog-uploads:
+  farmlog-exports:
+  farmlog-db-data:

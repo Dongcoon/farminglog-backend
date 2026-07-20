@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.farmlog.records.RecordServiceValidationTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-07-20T07:17:51.920Z" hostname="DESKTOP-D0KHPJK" time="0.059">
+  <properties/>
+  <testcase name="optimisticVersionMismatchRejectsUpdateAndDeleteWithoutWrites()" classname="com.farmlog.records.RecordServiceValidationTest" time="0.004"/>
+  <testcase name="allFourRecordTypesHaveCreateHappyPaths()" classname="com.farmlog.records.RecordServiceValidationTest" time="0.011"/>
+  <testcase name="pestAmountAndUnitMoveAsNullablePair()" classname="com.farmlog.records.RecordServiceValidationTest" time="0.005"/>
+  <testcase name="nullOverrideReturnsToAutoAndAutoModeRecalculatesComponents()" classname="com.farmlog.records.RecordServiceValidationTest" time="0.002"/>
+  <testcase name="salesRejectsFeeAndManualNetOutsideGrossRange()" classname="com.farmlog.records.RecordServiceValidationTest" time="0.005"/>
+  <testcase name="listRejectsInvalidPageDateRangeAndSort()" classname="com.farmlog.records.RecordServiceValidationTest" time="0.005"/>
+  <testcase name="requiredAndFutureDatesAreRejected()" classname="com.farmlog.records.RecordServiceValidationTest" time="0.004"/>
+  <testcase name="salesListRejectsBlankAndUnknownSettlementStatus()" classname="com.farmlog.records.RecordServiceValidationTest" time="0.004"/>
+  <testcase name="cropSeasonMismatchAndCrossFarmReferenceAreRejected()" classname="com.farmlog.records.RecordServiceValidationTest" time="0.006"/>
+  <testcase name="feedDefaultsAllTypesAndUsesOneGlobalPageAndCount()" classname="com.farmlog.records.RecordServiceValidationTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

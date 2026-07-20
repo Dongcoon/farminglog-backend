@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.farmlog.export.ExportWorkerTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-07-20T07:17:47.446Z" hostname="DESKTOP-D0KHPJK" time="0.033">
+  <properties/>
+  <testcase name="staleCompletionDeletesPublishedPhysicalFile()" classname="com.farmlog.export.ExportWorkerTest" time="0.032"/>
+  <system-out><![CDATA[2026-07-20T16:17:47.479+09:00  INFO 32132 --- [farmlog-api] [    Test worker] com.farmlog.export.ExportWorker          : export job 31 lost its lease; stale result discarded
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
